@@ -1,0 +1,26 @@
+{
+  "name": "knowledge-guardians",
+  "version": "1.0.0",
+  "description": "حُرّاس المعرفة - منصة المغامرات التعليمية التكيفية",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "node --watch server/index.js",
+    "dev:client": "vite client",
+    "build": "vite build client",
+    "test": "node test/evaluators.test.js && node test-api.js",
+    "start": "node server/index.js"
+  },
+  "dependencies": {
+    "@google/genai": "^2.16.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "vite": "^5.2.0"
+  }
+}

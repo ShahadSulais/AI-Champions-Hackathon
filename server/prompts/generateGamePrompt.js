@@ -1,0 +1,119 @@
+export function buildGenerateGamePrompt({ lessonTitle, studentLevel, lessonText, storyTheme, memory }) {
+  return `
+أنت مصمم خبير للألعاب التعليمية التكيفية باللغة العربية للطلاب.
+قم بتوليد لعبة مغامرة تفاعلية كاملة ومبنية حصرياً على الدرس المرفق.
+
+بيانات الدرس والمستهدف:
+- عنوان الدرس: "${lessonTitle}"
+- المستهدف/المستوى: "${studentLevel}"
+- نص الدرس العلمي:
+"""
+${lessonText}
+"""
+- السمة القصصية (الثيم): "${storyTheme}"
+- سياق الذاكرة التكيفية للطالب: ${JSON.stringify(memory || {})}
+
+قواعد هامة جداً:
+1. يجب أن تكون كل المعلومات والأسئلة والإجابات مستمدة تماماً وحصرياً من نص الدرس العلمي أعلاه.
+2. يجب أن تتكون المغامرة من 3 مفاهيم في قائمة "concepts" بأرقام id: "c1", "c2", "c3".
+3. يجب أن تتكون اللعبة من 3 مشاهد بالضبط في قائمة "scenes" بأرقام id: "s1", "s2", "s3":
+   - المشهد الأول: نوعه "classification" (تصنيف عناصر الدرس إلى فئتين على الأقل، مثل مدخلات ومخرجات أو أسباب ونتائج).
+   - المشهد الثاني: نوعه "ordering" (ترتيب خطوتين أو أكثر بتسلسل صحيحي 1, 2, 3, 4).
+   - المشهد الثالث: نوعه "written_answer" (سؤال عن مفهوم جوهري في الدرس مع إجابة متوقعة).
+4. في مشهد التصنيف (classification):
+   - تحتوي "categories" على الأقل فئتين، لكل فئة id و label (مثال: cat1, cat2).
+   - تحتوي "items" على 3 عناصر أو أكثر، لكل عنصر id و text و correctCategory طابق تماماً أحد id الفئات.
+5. في مشهد التتيب (ordering):
+   - تحتوي "steps" على 3 خطوات أو أكثر مرتبة حسب التسلسل الصحيح (correctOrder: 1, 2, 3...).
+6. في مشهد الإجابة الكتابية (written_answer):
+   - تحتوي على question و expectedAnswer.
+7. كل مشهد يجب أن يشير إلى conceptId صحيح وموجود في قائمة المفاهيم (c1 أو c2 أو c3).
+8. يجب أن تكون لغة المغامرة بالكامل باللغة العربية السليمة والمناسبة لسن الطالب (${studentLevel}).
+9. أرجع النتيجة في كائن JSON فقط بدون أي تنسيق ماركداون (لا تضع \`\`\`json).
+
+هيكل JSON المطلوب بالضبط:
+{
+  "gameTitle": "عنوان المغامرة المشوق",
+  "introduction": "مقدمة القصة الربط بالسمة القصصية",
+  "mission": "وصف المهمة الرئيسية",
+  "character": {
+    "name": "اسم شخصية المرشد",
+    "description": "وصف المرشد",
+    "dialogue": "حوار ترحيبي مشجع من المرشد"
+  },
+  "concepts": [
+    { "id": "c1", "name": "اسم المفهوم 1", "explanation": "شرح المفهوم 1" },
+    { "id": "c2", "name": "اسم المفهوم 2", "explanation": "شرح المفهوم 2" },
+    { "id": "c3", "name": "اسم المفهوم 3", "explanation": "شرح المفهوم 3" }
+  ],
+  "scenes": [
+    {
+      "id": "s1",
+      "title": "عنوان المشهد 1",
+      "narration": "سرد المشهد 1",
+      "visualDescription": "وصف بصري لبيئة المشهد",
+      "conceptId": "c1",
+      "gameType": "classification",
+      "challenge": {
+        "categories": [
+          { "id": "cat1", "label": "اسم الفئة الأولى" },
+          { "id": "cat2", "label": "اسم الفئة الثانية" }
+        ],
+        "items": [
+          { "id": "i1", "text": "العنصر 1", "correctCategory": "cat1" },
+          { "id": "i2", "text": "العنصر 2", "correctCategory": "cat1" },
+          { "id": "i3", "text": "العنصر 3", "correctCategory": "cat2" },
+          { "id": "i4", "text": "العنصر 4", "correctCategory": "cat2" }
+        ]
+      },
+      "hint": "تلميح للمشهد 1",
+      "successNarration": "عبارة تشجيع عند النجاح",
+      "supportNarration": "عبارة توضيحية عند التعثر"
+    },
+    {
+      "id": "s2",
+      "title": "عنوان المشهد 2",
+      "narration": "سرد المشهد 2",
+      "visualDescription": "وصف بصري",
+      "conceptId": "c2",
+      "gameType": "ordering",
+      "challenge": {
+        "steps": [
+          { "id": "st1", "text": "الخطوة الأولى", "correctOrder": 1 },
+          { "id": "st2", "text": "الخطوة الثانية", "correctOrder": 2 },
+          { "id": "st3", "text": "الخطوة الثالثة", "correctOrder": 3 },
+          { "id": "st4", "text": "الخطوة الرابعة", "correctOrder": 4 }
+        ]
+      },
+      "hint": "تلميح للمشهد 2",
+      "successNarration": "عبارة تشجيع عند النجاح",
+      "supportNarration": "عبارة توضيحية عند التعثر"
+    },
+    {
+      "id": "s3",
+      "title": "عنوان المشهد 3",
+      "narration": "سرد المشهد 3",
+      "visualDescription": "وصف بصري",
+      "conceptId": "c3",
+      "gameType": "written_answer",
+      "challenge": {
+        "question": "السؤال التحليلي",
+        "expectedAnswer": "الإجابة النموذجية المختصرة"
+      },
+      "hint": "تلميح للمشهد 3",
+      "successNarration": "عبارة تشجيع عند النجاح",
+      "supportNarration": "عبارة توضيحية عند التعثر"
+    }
+  ],
+  "misconception": {
+    "statement": "اعتقاد خاطئ شائع يتعلق بالدرس",
+    "correction": "التصحيح العلمي الدقيق",
+    "conceptId": "c1"
+  },
+  "ending": "خاتمة القصة والاحتفال بالنجاح",
+  "teacherKey": [
+    { "concept": "اسم المفهوم", "evaluationCriteria": "معيار التقييم للمعلم" }
+  ]
+}
+`;
+}

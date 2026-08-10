@@ -1,0 +1,39 @@
+body {
+  font-family: 'Cairo', sans-serif;
+  background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 100%);
+  color: #f8fafc;
+  min-height: 100vh;
+}
+
+.story-card-shadow {
+  box-shadow: 0 10px 30px -10px rgba(168, 85, 247, 0.3);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+/* Accessibility: Visible Focus Styles */
+:focus-visible {
+  outline: 2px solid #c026d3;
+  outline-offset: 2px;
+}
+
+/* Accessibility: Respect Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

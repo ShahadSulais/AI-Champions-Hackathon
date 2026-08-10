@@ -1,0 +1,8 @@
+/* Component-specific style overrides and utilities */
+.class-item {
+  user-select: none;
+}
+
+.category-dropzone {
+  user-select: none;
+}
