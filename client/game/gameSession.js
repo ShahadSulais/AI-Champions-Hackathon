@@ -16,8 +16,17 @@ export function loadScene(index) {
   state.currentSceneIndex = index;
   state.currentSceneData = state.gameState.scenes[index];
 
+  const totalScenes = state.gameState.scenes.length || 3;
+  const progressPercent = Math.round(((index + 1) / totalScenes) * 100);
+
   const sceneCounter = document.getElementById('scene-counter');
-  if (sceneCounter) sceneCounter.textContent = `المشهد ${index + 1} من 3`;
+  if (sceneCounter) sceneCounter.textContent = `المشهد ${index + 1} من ${totalScenes}`;
+
+  const progressPercentText = document.getElementById('progress-percent-text');
+  if (progressPercentText) progressPercentText.textContent = `${progressPercent}%`;
+
+  const progressBar = document.getElementById('game-progress-bar');
+  if (progressBar) progressBar.style.width = `${progressPercent}%`;
 
   const sceneTitle = document.getElementById('scene-title');
   if (sceneTitle) sceneTitle.textContent = state.currentSceneData.title;
@@ -42,7 +51,7 @@ export function loadScene(index) {
     const submitBtn = document.createElement('button');
     submitBtn.id = 'submit-game-btn';
     submitBtn.type = 'button';
-    submitBtn.className = 'w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3 px-6 rounded-xl transition shadow-md focus:ring-2 focus:ring-purple-500 outline-none';
+    submitBtn.className = 'w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3.5 px-6 rounded-xl transition shadow-md focus:ring-2 focus:ring-purple-400 outline-none text-base';
     submitBtn.textContent = 'تحقق من الإجابة';
     submitBtn.addEventListener('click', submitCurrentGame);
 

@@ -1,12 +1,37 @@
+:root {
+  --color-purple-accent: #9333ea;
+  --color-pink-accent: #db2777;
+  --color-amber-accent: #d97706;
+  --color-emerald-accent: #059669;
+  --color-bg-slate: #0b0f19;
+  --color-card-bg: rgba(15, 23, 42, 0.92);
+}
+
 body {
-  font-family: 'Cairo', sans-serif;
-  background: radial-gradient(circle at center, #1e1b4b 0%, #0f172a 100%);
-  color: #f8fafc;
+  font-family: 'Cairo', system-ui, -apple-system, sans-serif;
+  background: radial-gradient(ellipse at top, #1e1035 0%, #0b0f19 75%, #05070d 100%);
+  color: #f1f5f9;
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .story-card-shadow {
-  box-shadow: 0 10px 30px -10px rgba(168, 85, 247, 0.3);
+  box-shadow: 0 12px 36px -10px rgba(147, 51, 234, 0.35), 0 0 1px 1px rgba(168, 85, 247, 0.2);
+}
+
+/* Animations */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.02); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 ::-webkit-scrollbar {
@@ -14,18 +39,59 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #0b0f19;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #475569;
+  background: #334155;
   border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 /* Accessibility: Visible Focus Styles */
 :focus-visible {
-  outline: 2px solid #c026d3;
-  outline-offset: 2px;
+  outline: 2px solid #e879f9 !important;
+  outline-offset: 2px !important;
+}
+
+/* Print-friendly styles for Teacher Report */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  header, footer, button, #header-memory-btn, #report-back-btn, #report-print-btn {
+    display: none !important;
+  }
+
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  #screen-report, .screen-view {
+    display: block !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .story-card-shadow, .bg-slate-900, .bg-slate-950 {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    box-shadow: none !important;
+  }
+
+  .text-white, .text-purple-300, .text-slate-300, .text-slate-400 {
+    color: #0f172a !important;
+  }
 }
 
 /* Accessibility: Respect Reduced Motion */
@@ -37,3 +103,4 @@ body {
     scroll-behavior: auto !important;
   }
 }
+

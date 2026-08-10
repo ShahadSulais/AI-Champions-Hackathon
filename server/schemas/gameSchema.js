@@ -5,6 +5,8 @@ export const requestSchema = z.object({
   studentLevel: z.string().min(1, 'المستوى التعليمي مطلوب').max(200, 'المستوى التعليمي طويل جداً'),
   lessonText: z.string().min(10, 'نص الدرس قصير جداً').max(10000, 'نص الدرس طويل جداً (الحد الأقصى 10,000 حرف)'),
   storyTheme: z.string().min(1, 'السمة القصصية مطلوبة').max(100),
+  provider: z.enum(['auto', 'gemini', 'openrouter']).optional(),
+  apiKey: z.string().optional(),
   memory: z.object({
     sessionsCount: z.number().optional(),
     profileSummary: z.string().optional(),

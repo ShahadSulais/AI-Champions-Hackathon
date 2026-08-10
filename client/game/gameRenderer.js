@@ -19,15 +19,20 @@ export function renderMiniGame() {
 
     // Instruction Box
     const instrBox = document.createElement('div');
-    instrBox.className = 'mb-3';
-    const instrTitle = document.createElement('span');
-    instrTitle.className = 'text-xs font-bold text-purple-300 block mb-1';
-    instrTitle.textContent = '🎮 تفاعل التصنيف:';
+    instrBox.className = 'mb-3 flex items-center justify-between flex-wrap gap-2 border-b border-slate-800/80 pb-3';
+
+    const leftTitleGroup = document.createElement('div');
+    const instrBadge = document.createElement('span');
+    instrBadge.className = 'text-xs font-bold bg-purple-950 text-purple-300 border border-purple-700/60 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-1';
+    instrBadge.textContent = '🧩 تحدي التصنيف المفاهيمي';
+
     const instrDesc = document.createElement('p');
     instrDesc.className = 'text-xs text-slate-400';
-    instrDesc.textContent = 'اختر العنصر ثم اضغط على الفئة المناسبة له. يمكنك إعادة التغيير في أي وقت.';
-    instrBox.appendChild(instrTitle);
-    instrBox.appendChild(instrDesc);
+    instrDesc.textContent = 'اضغط على العنصر أولاً لتحديده، ثم اضغط على الفئة المناسبة لنقله إليها.';
+
+    leftTitleGroup.appendChild(instrBadge);
+    leftTitleGroup.appendChild(instrDesc);
+    instrBox.appendChild(leftTitleGroup);
     container.appendChild(instrBox);
 
     // Grid Layout
@@ -37,12 +42,14 @@ export function renderMiniGame() {
     // Unassigned Side
     const unassignedCol = document.createElement('div');
     unassignedCol.className = 'space-y-2';
+
     const unassignedTitle = document.createElement('span');
-    unassignedTitle.className = 'text-xs font-semibold text-slate-400 block';
-    unassignedTitle.textContent = 'العناصر غير المَصنفة:';
+    unassignedTitle.className = 'text-xs font-bold text-slate-300 block flex items-center gap-1';
+    unassignedTitle.textContent = '📦 العناصر غير المَصنفة:';
+
     const unassignedBox = document.createElement('div');
     unassignedBox.id = 'unassigned-items';
-    unassignedBox.className = 'min-h-[140px] bg-slate-900 border border-slate-800 p-3 rounded-xl flex flex-wrap gap-2 items-start';
+    unassignedBox.className = 'min-h-[140px] bg-slate-900/90 border border-slate-800 p-3 rounded-xl flex flex-wrap gap-2 items-start';
 
     state.interactiveData.items.forEach(item => {
       const itemEl = createClassificationItemEl(item);
@@ -56,26 +63,27 @@ export function renderMiniGame() {
     // Categories Side
     const catCol = document.createElement('div');
     catCol.className = 'space-y-3';
+
     const catTitle = document.createElement('span');
-    catTitle.className = 'text-xs font-semibold text-slate-400 block';
-    catTitle.textContent = 'الفئات المستهدفة:';
+    catTitle.className = 'text-xs font-bold text-slate-300 block flex items-center gap-1';
+    catTitle.textContent = '🎯 الفئات المستهدفة:';
     catCol.appendChild(catTitle);
 
     state.interactiveData.categories.forEach(cat => {
       const dropzone = document.createElement('div');
-      dropzone.className = 'category-dropzone bg-slate-900/80 hover:bg-purple-950/40 border border-purple-900/50 p-3 rounded-xl min-h-[70px] transition cursor-pointer focus:ring-2 focus:ring-purple-500 outline-none';
+      dropzone.className = 'category-dropzone bg-slate-900/80 hover:bg-purple-950/40 border border-purple-900/60 p-3 rounded-xl min-h-[80px] transition cursor-pointer focus:ring-2 focus:ring-purple-400 outline-none';
       dropzone.dataset.catId = cat.id;
       dropzone.setAttribute('tabindex', '0');
       dropzone.setAttribute('role', 'button');
-      dropzone.setAttribute('aria-label', `فئة: ${cat.label}`);
+      dropzone.setAttribute('aria-label', `فئة: ${cat.label}، اضغط لتخصيص العنصر المحدد`);
 
       const catHeader = document.createElement('div');
-      catHeader.className = 'text-xs font-bold text-purple-300 mb-1';
-      catHeader.textContent = cat.label;
+      catHeader.className = 'text-xs font-bold text-purple-300 mb-2 flex items-center gap-1.5';
+      catHeader.innerHTML = `<span>📂</span> <span>${cat.label}</span>`;
 
       const catItemsBox = document.createElement('div');
       catItemsBox.id = `cat-items-${cat.id}`;
-      catItemsBox.className = 'flex flex-wrap gap-1.5';
+      catItemsBox.className = 'flex flex-wrap gap-2';
 
       dropzone.appendChild(catHeader);
       dropzone.appendChild(catItemsBox);
@@ -116,25 +124,26 @@ export function renderMiniGame() {
     }
 
     const headerBox = document.createElement('div');
-    headerBox.className = 'mb-3';
+    headerBox.className = 'mb-3 space-y-2';
 
-    const headerTag = document.createElement('span');
-    headerTag.className = 'text-xs font-bold text-purple-300 block mb-1';
-    headerTag.textContent = '✍️ الإجابة المفاهيمية القصيرة:';
+    const headerBadge = document.createElement('span');
+    headerBadge.className = 'text-xs font-bold bg-emerald-950 text-emerald-300 border border-emerald-700/60 px-3 py-1 rounded-full inline-flex items-center gap-1.5';
+    headerBadge.textContent = '✍️ تحدي الإجابة المفاهيمية القصيرة';
 
     const qPrompt = document.createElement('p');
-    qPrompt.className = 'text-sm font-semibold text-slate-200 mb-3';
+    qPrompt.className = 'text-sm font-semibold text-slate-100 bg-slate-900/90 border border-slate-800 p-4 rounded-xl leading-relaxed';
     qPrompt.textContent = questionText;
 
-    headerBox.appendChild(headerTag);
+    headerBox.appendChild(headerBadge);
     headerBox.appendChild(qPrompt);
 
     const textareaContainer = document.createElement('div');
     const textarea = document.createElement('textarea');
     textarea.id = 'student-written-input';
     textarea.rows = 3;
-    textarea.placeholder = 'اكتب إجابتك العلمية هنا...';
-    textarea.className = 'w-full bg-slate-900 border border-slate-800 rounded-xl p-3 text-sm text-slate-100 focus:outline-none focus:border-purple-500 transition focus:ring-2 focus:ring-purple-500';
+    textarea.placeholder = 'اكتب إجابتك العلمية الواضحة هنا...';
+    textarea.setAttribute('aria-label', 'حقل الإجابة العلمية القصيرة');
+    textarea.className = 'w-full bg-slate-900 border border-slate-700 rounded-xl p-3.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-400 focus:ring-2 focus:ring-purple-400 transition leading-relaxed';
 
     textareaContainer.appendChild(textarea);
     container.appendChild(headerBox);
@@ -146,7 +155,7 @@ function createClassificationItemEl(item) {
   const itemEl = document.createElement('div');
   itemEl.id = `item-${item.id}`;
   itemEl.dataset.itemId = item.id;
-  itemEl.className = 'class-item bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs px-3 py-2 rounded-lg cursor-pointer transition font-semibold focus:ring-2 focus:ring-purple-500 outline-none';
+  itemEl.className = 'class-item bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs px-3.5 py-2.5 rounded-xl cursor-pointer transition font-semibold text-slate-100 focus:ring-2 focus:ring-purple-400 outline-none shadow-sm';
   itemEl.textContent = item.text;
   itemEl.setAttribute('tabindex', '0');
   itemEl.setAttribute('role', 'button');
@@ -165,10 +174,17 @@ function createClassificationItemEl(item) {
 
 function selectClassificationItem(itemId) {
   playSound('select');
-  document.querySelectorAll('.class-item').forEach(el => el.classList.remove('border-purple-500', 'bg-purple-950'));
+  document.querySelectorAll('.class-item').forEach(el => {
+    el.classList.remove('border-purple-400', 'bg-purple-950', 'ring-2', 'ring-purple-400', 'text-purple-200');
+    el.classList.add('border-slate-600', 'bg-slate-800', 'text-slate-100');
+  });
+
   state.selectedClassItem = itemId;
   const el = document.getElementById(`item-${itemId}`);
-  if (el) el.classList.add('border-purple-500', 'bg-purple-950');
+  if (el) {
+    el.classList.remove('border-slate-600', 'bg-slate-800', 'text-slate-100');
+    el.classList.add('border-purple-400', 'bg-purple-950', 'ring-2', 'ring-purple-400', 'text-purple-200');
+  }
 }
 
 function assignToCategory(catId) {
@@ -190,16 +206,16 @@ function assignToCategory(catId) {
   if (catBox && itemObj) {
     const badge = document.createElement('div');
     badge.id = `assigned-${itemId}`;
-    badge.className = 'bg-purple-900/60 border border-purple-700/60 text-xs px-2.5 py-1 rounded-lg text-purple-200 font-semibold flex items-center gap-1 cursor-pointer focus:ring-2 focus:ring-purple-500 outline-none';
+    badge.className = 'bg-purple-950 border border-purple-600/80 text-xs px-3 py-1.5 rounded-xl text-purple-200 font-semibold flex items-center gap-1.5 cursor-pointer focus:ring-2 focus:ring-purple-400 outline-none shadow-sm min-h-[38px]';
     badge.setAttribute('tabindex', '0');
     badge.setAttribute('role', 'button');
-    badge.setAttribute('aria-label', `${itemObj.text}، اضغط لإغلاق أو إعادة التصنيف`);
+    badge.setAttribute('aria-label', `${itemObj.text}، اضغط لإلغاء التخصيص`);
 
     const labelSpan = document.createElement('span');
     labelSpan.textContent = itemObj.text;
 
     const removeBtn = document.createElement('span');
-    removeBtn.className = 'text-slate-400 hover:text-white ml-1 text-sm font-bold';
+    removeBtn.className = 'text-purple-300 hover:text-white mr-1 text-base font-bold';
     removeBtn.textContent = '×';
 
     badge.appendChild(labelSpan);
@@ -242,54 +258,67 @@ function renderOrderingList(container) {
   container.replaceChildren();
 
   const instrBox = document.createElement('div');
-  instrBox.className = 'mb-3';
+  instrBox.className = 'mb-3 border-b border-slate-800/80 pb-3';
 
-  const instrTitle = document.createElement('span');
-  instrTitle.className = 'text-xs font-bold text-purple-300 block mb-1';
-  instrTitle.textContent = '🎮 تفاعل الترتيب:';
+  const instrBadge = document.createElement('span');
+  instrBadge.className = 'text-xs font-bold bg-indigo-950 text-indigo-300 border border-indigo-700/60 px-3 py-1 rounded-full inline-flex items-center gap-1.5 mb-1';
+  instrBadge.textContent = '🔢 تحدي ترتيب التسلسل الصحيح';
 
   const instrDesc = document.createElement('p');
   instrDesc.className = 'text-xs text-slate-400';
-  instrDesc.textContent = 'رتب الخطوات بالضغط على أزرار التبديل (أعلى / أسفل).';
+  instrDesc.textContent = 'استخدم أزرار (⬆️ أعلى / ⬇️ أسفل) لرصف الخطوات بالتسلسل العلمي الصحيح.';
 
-  instrBox.appendChild(instrTitle);
+  instrBox.appendChild(instrBadge);
   instrBox.appendChild(instrDesc);
   container.appendChild(instrBox);
 
   const listContainer = document.createElement('div');
-  listContainer.className = 'space-y-2';
+  listContainer.className = 'space-y-2.5';
   listContainer.id = 'ordering-list';
+
+  const totalSteps = state.interactiveData.steps.length;
 
   state.interactiveData.steps.forEach((step, idx) => {
     const card = document.createElement('div');
-    card.className = 'bg-slate-900 border border-slate-800 p-3 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold';
+    card.className = 'bg-slate-900 border border-slate-800 p-3.5 rounded-xl flex items-center justify-between gap-3 text-xs font-semibold shadow-sm hover:border-slate-700 transition';
 
     const leftGroup = document.createElement('div');
-    leftGroup.className = 'flex items-center gap-2.5';
+    leftGroup.className = 'flex items-center gap-3';
 
     const numBadge = document.createElement('span');
-    numBadge.className = 'w-6 h-6 rounded-full bg-purple-900/60 text-purple-300 flex items-center justify-center text-[10px] font-bold';
+    numBadge.className = 'w-7 h-7 rounded-full bg-purple-900/80 border border-purple-700/60 text-purple-200 flex items-center justify-center text-xs font-bold flex-shrink-0';
     numBadge.textContent = String(idx + 1);
 
     const stepText = document.createElement('span');
+    stepText.className = 'text-slate-100 leading-relaxed';
     stepText.textContent = step.text;
 
     leftGroup.appendChild(numBadge);
     leftGroup.appendChild(stepText);
 
     const btnGroup = document.createElement('div');
-    btnGroup.className = 'flex items-center gap-1';
+    btnGroup.className = 'flex items-center gap-1.5 flex-shrink-0';
 
     const upBtn = document.createElement('button');
     upBtn.type = 'button';
-    upBtn.className = 'bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded transition focus:ring-2 focus:ring-purple-500 outline-none';
+    upBtn.disabled = idx === 0;
+    upBtn.className = `px-3 py-1.5 rounded-lg text-xs font-bold transition focus:ring-2 focus:ring-purple-400 outline-none flex items-center gap-1 ${
+      idx === 0
+        ? 'bg-slate-950 text-slate-600 border border-slate-800 cursor-not-allowed'
+        : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+    }`;
     upBtn.textContent = '⬆️ أعلى';
     upBtn.setAttribute('aria-label', `تحريك ${step.text} للأعلى`);
     upBtn.addEventListener('click', () => moveStep(idx, -1));
 
     const downBtn = document.createElement('button');
     downBtn.type = 'button';
-    downBtn.className = 'bg-slate-800 hover:bg-slate-700 text-slate-200 px-2.5 py-1 rounded transition focus:ring-2 focus:ring-purple-500 outline-none';
+    downBtn.disabled = idx === totalSteps - 1;
+    downBtn.className = `px-3 py-1.5 rounded-lg text-xs font-bold transition focus:ring-2 focus:ring-purple-400 outline-none flex items-center gap-1 ${
+      idx === totalSteps - 1
+        ? 'bg-slate-950 text-slate-600 border border-slate-800 cursor-not-allowed'
+        : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+    }`;
     downBtn.textContent = '⬇️ أسفل';
     downBtn.setAttribute('aria-label', `تحريك ${step.text} الأسفل`);
     downBtn.addEventListener('click', () => moveStep(idx, 1));
@@ -317,3 +346,4 @@ function moveStep(index, direction) {
   const container = document.getElementById('minigame-container');
   if (container) renderOrderingList(container);
 }
+

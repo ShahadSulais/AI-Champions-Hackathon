@@ -59,7 +59,7 @@ const server = app.listen(3099, async () => {
     });
     const missingKeyData = await missingKeyRes.json();
     console.log('Missing Key Response Status:', missingKeyRes.status, missingKeyData);
-    if (missingKeyRes.status === 500 && missingKeyData.error && missingKeyData.error.includes('GEMINI_API_KEY')) {
+    if (missingKeyRes.status === 500 && missingKeyData.error && (missingKeyData.error.includes('GEMINI_API_KEY') || missingKeyData.error.includes('مفتاح API'))) {
       console.log('✅ Test 3 Passed (Returned 500 with clear API key error without falling back silently)');
     } else {
       console.error('❌ Test 3 Failed');

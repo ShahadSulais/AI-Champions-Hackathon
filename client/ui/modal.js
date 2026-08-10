@@ -1,4 +1,5 @@
 import { getMemory, clearMemory } from '../services/memoryService.js';
+import { getSettings, saveSettings, clearSettings } from '../services/settingsService.js';
 
 export function renderMemoryInspector() {
   const mem = getMemory();
@@ -56,7 +57,69 @@ export function renderMemoryInspector() {
   }
 }
 
+export function renderSettingsFields() {
+  const current = getSettings();
+  const providerSelect = document.getElementById('provider-select');
+  const keyInput = document.getElementById('api-key-input');
+  const statusBadge = document.getElementById('api-status-badge');
+
+  if (providerSelect) providerSelect.value = current.provider || 'auto';
+  if (keyInput) keyInput.value = current.apiKey || '';
+
+  if (statusBadge) {
+    if (current.apiKey) {
+      statusBadge.textContent = 'مُدخل يدوياً 🔑';
+      statusBadge.className = 'text-[10px] bg-purple-950 text-purple-300 px-2 py-0.5 rounded border border-purple-800 font-semibold';
+    } else {
+      statusBadge.textContent = 'تلقائي (الخادم)';
+      statusBadge.className = 'text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700';
+    }
+  }
+}
+
+export function handleSaveSettings() {
+  const providerSelect = document.getElementById('provider-select');
+  const keyInput = document.getElementById('api-key-input');
+  
+  const provider = providerSelect?.value || 'auto';
+  const apiKey = keyInput?.value.trim() || '';
+
+  saveSettings({ provider, apiKey });
+  renderSettingsFields();
+
+  const saveBtn = document.getElementById('save-settings-btn');
+  if (saveBtn) {
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = 'تم الحفظ ✓';
+    saveBtn.classList.replace('bg-purple-600', 'bg-green-600');
+    setTimeout(() => {
+      saveBtn.textContent = originalText;
+      saveBtn.classList.replace('bg-green-600', 'bg-purple-600');
+    }, 1500);
+  }
+}
+
+export function handleClearSettings() {
+  clearSettings();
+  renderSettingsFields();
+}
+
+export function toggleKeyVisibility() {
+  const keyInput = document.getElementById('api-key-input');
+  const toggleBtn = document.getElementById('toggle-key-visibility-btn');
+  if (!keyInput) return;
+
+  if (keyInput.type === 'password') {
+    keyInput.type = 'text';
+    if (toggleBtn) toggleBtn.textContent = '🔒';
+  } else {
+    keyInput.type = 'password';
+    if (toggleBtn) toggleBtn.textContent = '👁️';
+  }
+}
+
 export function openSettingsModal() {
+  renderSettingsFields();
   renderMemoryInspector();
   document.getElementById('settings-modal')?.classList.remove('hidden');
 }
@@ -70,3 +133,4 @@ export function handleClearMemory() {
     renderMemoryInspector();
   }
 }
+

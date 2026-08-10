@@ -21,6 +21,13 @@
     </script>
     <link rel="stylesheet" href="/src/styles/base.css">
     <link rel="stylesheet" href="/src/styles/components.css">
+    <!-- PDF.js library for client-side PDF text extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        if (window.pdfjsLib) {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+    </script>
 </head>
 <body class="flex flex-col min-h-screen selection:bg-purple-500 selection:text-white">
 
@@ -38,7 +45,7 @@
             </div>
             <div class="flex items-center gap-3">
                 <button id="header-memory-btn" class="text-xs bg-slate-800 hover:bg-slate-700 text-purple-300 border border-purple-700/50 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5 font-semibold">
-                    <span>🧠</span> ذاكرة المعرفة
+                    <span>⚙️</span> الإعدادات والذاكرة
                 </button>
                 <div id="header-status" class="text-xs bg-purple-950/80 border border-purple-700/50 px-3 py-1.5 rounded-full text-purple-200 hidden">
                     المغامرة نشطة
@@ -47,23 +54,59 @@
         </div>
     </header>
 
-    <!-- Memory Inspector Modal -->
+    <!-- Memory Inspector & Settings Modal -->
     <div id="settings-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-slate-900 border border-purple-800 rounded-2xl max-w-lg w-full p-6 space-y-4 shadow-2xl">
+        <div class="bg-slate-900 border border-purple-800 rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl overflow-y-auto max-h-[90vh]">
             <div class="flex justify-between items-center border-b border-slate-800 pb-3">
-                <h3 class="font-bold text-purple-300 text-lg flex items-center gap-2"><span>🧠</span> ذاكرة المعرفة التكيفية (Adaptive Memory)</h3>
-                <button id="modal-close-btn" class="text-slate-400 hover:text-white text-lg">&times;</button>
+                <h3 class="font-bold text-purple-300 text-base md:text-lg flex items-center gap-2"><span>⚙️</span> الإعدادات ومحرك الذكاء الاصطناعي</h3>
+                <button id="modal-close-btn" class="text-slate-400 hover:text-white text-xl font-bold">&times;</button>
             </div>
-            <div class="space-y-3 text-xs">
-                <p class="text-slate-400">تخزن الذاكرة سياق أداء الطالب ونقاط ضعفه ومستواه لكي تتكيف الأسئلة والقصص تلقائياً مع مرور الوقت وبحسب السياق الزمني.</p>
-                <div class="flex justify-between items-center">
-                    <span class="font-bold text-purple-300">سجل الذاكرة المحفوظ:</span>
-                    <button id="clear-memory-btn" class="text-[10px] bg-red-950/60 text-red-300 border border-red-800 px-2 py-0.5 rounded">مسح الذاكرة</button>
+
+            <!-- SECTION 1: LLM API Key Settings -->
+            <div class="bg-slate-950/80 border border-purple-900/50 p-4 rounded-xl space-y-3 text-xs">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <h4 class="font-bold text-purple-200 flex items-center gap-1.5">
+                        <span>🔑</span> مفتاح API ومحرك التوليد (LLM Provider)
+                    </h4>
+                    <span id="api-status-badge" class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">تلقائي (الخادم)</span>
                 </div>
-                <div id="memory-inspector-box" class="bg-slate-950 border border-slate-800 p-3 rounded-xl max-h-48 overflow-y-auto text-[11px] text-slate-300 font-mono space-y-1"></div>
+                
+                <p class="text-slate-400 leading-relaxed">يمكنك اختيار محرك الذكاء الاصطناعي (Gemini أو OpenRouter) وإدخال مفتاح API الخاص بك، أو ترك الحقل فارغاً لاستخدام مفتاح الخادم التلقائي.</p>
+                
+                <div>
+                    <label for="provider-select" class="block text-slate-300 font-semibold mb-1">المحرك المستهدف:</label>
+                    <select id="provider-select" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-slate-200 focus:outline-none focus:border-purple-500">
+                        <option value="auto">تلقائي (بحسب ما هو مهيأ على الخادم)</option>
+                        <option value="gemini">Google Gemini (Gemini 2.5 Flash)</option>
+                        <option value="openrouter">OpenRouter (مقرون بالموديل المحدد)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label for="api-key-input" class="block text-slate-300 font-semibold mb-1">مفتاح API الخاص بك (اختراري):</label>
+                    <div class="relative">
+                        <input type="password" id="api-key-input" placeholder="AIzaSy... أو sk-or-v1-..." class="w-full bg-slate-900 border border-slate-800 rounded-lg pl-10 pr-3 py-2 text-slate-200 placeholder-slate-600 focus:outline-none focus:border-purple-500 font-mono text-xs">
+                        <button type="button" id="toggle-key-visibility-btn" class="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 px-1 text-xs">👁️</button>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-1">
+                    <button id="clear-settings-btn" type="button" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded border border-slate-700 transition">إعادة ضبط</button>
+                    <button id="save-settings-btn" type="button" class="text-[11px] bg-purple-600 hover:bg-purple-500 text-white font-bold px-3.5 py-1 rounded transition">حفظ الإعدادات</button>
+                </div>
             </div>
+
+            <!-- SECTION 2: Adaptive Memory Inspector -->
+            <div class="space-y-3 text-xs pt-1 border-t border-slate-800/80">
+                <div class="flex justify-between items-center">
+                    <h4 class="font-bold text-purple-300 flex items-center gap-1.5"><span>🧠</span> الذاكرة التكيفية المحفوظة:</h4>
+                    <button id="clear-memory-btn" class="text-[10px] bg-red-950/60 hover:bg-red-900 text-red-300 border border-red-800 px-2 py-0.5 rounded transition">مسح الذاكرة</button>
+                </div>
+                <div id="memory-inspector-box" class="bg-slate-950 border border-slate-800 p-3 rounded-xl max-h-36 overflow-y-auto text-[11px] text-slate-300 font-mono space-y-1"></div>
+            </div>
+
             <div class="flex justify-end pt-2">
-                <button id="modal-close-footer-btn" class="bg-purple-600 hover:bg-purple-500 text-white font-bold py-2 px-4 rounded-xl text-xs transition">إغلاق</button>
+                <button id="modal-close-footer-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 px-4 rounded-xl text-xs transition border border-slate-700">إغلاق</button>
             </div>
         </div>
     </div>
@@ -73,85 +116,136 @@
 
         <!-- SCREEN 1: Teacher Setup -->
         <section id="screen-setup" class="screen-view transition-all duration-300">
-            <div class="bg-slate-900/90 border border-purple-900/40 rounded-2xl p-6 md:p-8 story-card-shadow">
-                <div class="flex justify-between items-start mb-6 border-b border-slate-800 pb-4">
+            <div class="bg-slate-900/90 border border-purple-900/40 rounded-2xl p-6 md:p-8 story-card-shadow space-y-6">
+                
+                <!-- Setup Header -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
                     <div>
-                        <h2 class="text-2xl font-bold text-purple-300">إعداد مغامرة المعرفة التكيفية</h2>
-                        <p class="text-sm text-slate-400 mt-1">أدخل نص الدرس لتوليد قصة تفاعلية مدعومة بالذاكرة التكيفية الذكية.</p>
+                        <span class="text-xs bg-purple-950 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full font-semibold mb-2 inline-block">🎯 إعداد المعلم</span>
+                        <h2 class="text-2xl md:text-3xl font-bold text-white">صانع المغامرات التعليمية التكيفية</h2>
+                        <p class="text-sm text-slate-400 mt-1">حّول دروسك العلمية إلى تحدٍ تفاعلي مدعوم بالذكاء الاصطناعي والذاكرة التكيفية.</p>
                     </div>
-                    <button type="button" id="demo-lesson-btn" class="text-xs bg-purple-900/50 hover:bg-purple-800 text-purple-200 border border-purple-600/50 px-3 py-2 rounded-lg transition flex items-center gap-1.5 font-semibold">
-                        <span>✨</span> استخدم درسًا تجريبيًا
+                    <button type="button" id="demo-lesson-btn" class="text-xs bg-purple-900/50 hover:bg-purple-800 text-purple-200 border border-purple-600/50 px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 font-semibold focus:ring-2 focus:ring-purple-500">
+                        <span>✨</span> تحميل درس تجريبي
                     </button>
                 </div>
 
-                <form id="setup-form" class="space-y-5">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-300 mb-1">عنوان الدرس</label>
-                            <input type="text" id="lesson-title" required placeholder="مثال: البناء الضوئي في النباتات" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-purple-500 transition">
+                <form id="setup-form" class="space-y-6" novalidate>
+                    
+                    <!-- STEP 1: Basic Info -->
+                    <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-4 md:p-5 space-y-4">
+                        <div class="flex items-center gap-2 border-b border-slate-800/60 pb-2">
+                            <span class="w-6 h-6 rounded-full bg-purple-900 text-purple-200 flex items-center justify-center text-xs font-bold">1</span>
+                            <h3 class="text-sm font-bold text-purple-300">معلومات الدرس المستهدف</h3>
                         </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-slate-300 mb-1">المستوى التعليمي / العمر</label>
-                            <input type="text" id="student-age" required placeholder="مثال: الصف السادس الابتدائي (11-12 سنة)" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-purple-500 transition">
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="lesson-title" class="block text-xs font-semibold text-slate-300 mb-1.5">عنوان الدرس العلمي <span class="text-purple-400">*</span></label>
+                                <input type="text" id="lesson-title" required placeholder="مثال: دورة الماء في الطبيعة" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition">
+                            </div>
+                            <div>
+                                <label for="student-age" class="block text-xs font-semibold text-slate-300 mb-1.5">المستوى التعليمي / العمر <span class="text-purple-400">*</span></label>
+                                <input type="text" id="student-age" required placeholder="مثال: الصف السادس الابتدائي (11-12 سنة)" class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition">
+                            </div>
                         </div>
                     </div>
 
-                    <div>
-                        <div class="flex justify-between items-center mb-1">
-                            <label class="block text-sm font-semibold text-slate-300">نص الدرس العلمي</label>
-                            <button type="button" disabled class="text-xs text-slate-500 bg-slate-800/50 px-2 py-0.5 rounded cursor-not-allowed">رفع PDF — قريبًا</button>
+                    <!-- STEP 2: Lesson Text -->
+                    <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-4 md:p-5 space-y-3">
+                        <div class="flex justify-between items-center border-b border-slate-800/60 pb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="w-6 h-6 rounded-full bg-purple-900 text-purple-200 flex items-center justify-center text-xs font-bold">2</span>
+                                <h3 class="text-sm font-bold text-purple-300">محتوى الدرس العلمي</h3>
+                            </div>
+                            <span id="lesson-text-counter" class="text-xs text-slate-400 font-mono">0 / 2000 حرف</span>
                         </div>
-                        <textarea id="lesson-text" rows="6" required placeholder="الصق نص الدرس هنا بالتفصيل..." class="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-slate-100 focus:outline-none focus:border-purple-500 transition text-sm leading-relaxed"></textarea>
+                        
+                        <div>
+                            <textarea id="lesson-text" rows="5" required placeholder="الصق نص الدرس العلمي هنا بالتفصيل المفاهيمي..." class="w-full bg-slate-900 border border-slate-800 rounded-xl p-4 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500 transition text-sm leading-relaxed"></textarea>
+                            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mt-2 text-[11px] text-slate-400">
+                                <span>💡 الحد الأدنى الموصى به: 50 حرفًا لتوليد تحديات متكاملة.</span>
+                                <div class="flex items-center gap-2">
+                                    <input type="file" id="lesson-file-input" accept=".pdf,image/*,.txt" class="hidden">
+                                    <button type="button" id="upload-file-btn" class="bg-purple-950/80 hover:bg-purple-900 text-purple-200 border border-purple-700/60 px-3 py-1 rounded-lg transition flex items-center gap-1.5 font-semibold">
+                                        <span>📁</span> رفع ملف درس (PDF / صورة / نص)
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="file-upload-status" class="hidden mt-2 p-2.5 rounded-lg bg-slate-900 border border-purple-900/40 text-xs text-purple-300 flex items-center justify-between">
+                                <span id="file-upload-status-text">جارِ تحليل واستخراج نص الدرس من الملف...</span>
+                                <span id="file-upload-spinner" class="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-semibold text-slate-300 mb-2">الطابع أو السمة القصصية</label>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <label class="cursor-pointer">
+                    <!-- STEP 3: Story Theme -->
+                    <div class="bg-slate-950/70 border border-slate-800/80 rounded-xl p-4 md:p-5 space-y-3">
+                        <div class="flex items-center gap-2 border-b border-slate-800/60 pb-2">
+                            <span class="w-6 h-6 rounded-full bg-purple-900 text-purple-200 flex items-center justify-center text-xs font-bold">3</span>
+                            <h3 class="text-sm font-bold text-purple-300">اختر طابع المغامرة القصصية</h3>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+                            <label class="theme-card-option cursor-pointer">
                                 <input type="radio" name="story-theme" value="مدينة مستقبلية" class="peer sr-only" checked>
-                                <div class="bg-slate-950 border border-slate-800 peer-checked:border-purple-500 peer-checked:bg-purple-950/40 p-3 rounded-xl text-center transition">
-                                    <div class="text-xl mb-1">🌆</div>
-                                    <div class="text-xs font-semibold">مدينة مستقبلية</div>
+                                <div class="theme-card-body bg-slate-900 border border-slate-800 peer-checked:border-purple-500 peer-checked:bg-purple-950/40 p-3.5 rounded-xl text-center transition hover:border-purple-600/50">
+                                    <div class="text-2xl mb-1">🌆</div>
+                                    <div class="text-xs font-bold text-slate-200">مدينة مستقبلية</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5">تقنيات وروبوتات عالم الغد</div>
                                 </div>
                             </label>
-                            <label class="cursor-pointer">
+
+                            <label class="theme-card-option cursor-pointer">
                                 <input type="radio" name="story-theme" value="عالم خيالي" class="peer sr-only">
-                                <div class="bg-slate-950 border border-slate-800 peer-checked:border-purple-500 peer-checked:bg-purple-950/40 p-3 rounded-xl text-center transition">
-                                    <div class="text-xl mb-1">🧝‍♂️</div>
-                                    <div class="text-xs font-semibold">عالم خيالي</div>
+                                <div class="theme-card-body bg-slate-900 border border-slate-800 peer-checked:border-purple-500 peer-checked:bg-purple-950/40 p-3.5 rounded-xl text-center transition hover:border-purple-600/50">
+                                    <div class="text-2xl mb-1">🧝‍♂️</div>
+                                    <div class="text-xs font-bold text-slate-200">عالم خيالي</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5">سحر وأساطير المعرفة</div>
                                 </div>
                             </label>
-                            <label class="cursor-pointer">
+
+                            <label class="theme-card-option cursor-pointer">
                                 <input type="radio" name="story-theme" value="رحلة فضائية" class="peer sr-only">
-                                <div class="bg-slate-950 border border-slate-800 peer-checked:border-purple-500 peer-checked:bg-purple-950/40 p-3 rounded-xl text-center transition">
-                                    <div class="text-xl mb-1">🚀</div>
-                                    <div class="text-xs font-semibold">رحلة فضائية</div>
+                                <div class="theme-card-body bg-slate-900 border border-slate-800 peer-checked:border-purple-500 peer-checked:bg-purple-950/40 p-3.5 rounded-xl text-center transition hover:border-purple-600/50">
+                                    <div class="text-2xl mb-1">🚀</div>
+                                    <div class="text-xs font-bold text-slate-200">رحلة فضائية</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5">استكشاف الكواكب والنجوم</div>
                                 </div>
                             </label>
-                            <label class="cursor-pointer">
+
+                            <label class="theme-card-option cursor-pointer">
                                 <input type="radio" name="story-theme" value="لغز بوليسي" class="peer sr-only">
-                                <div class="bg-slate-950 border border-slate-800 peer-checked:border-purple-500 peer-checked:bg-purple-950/40 p-3 rounded-xl text-center transition">
-                                    <div class="text-xl mb-1">🔍</div>
-                                    <div class="text-xs font-semibold">لغز بوليسي</div>
+                                <div class="theme-card-body bg-slate-900 border border-slate-800 peer-checked:border-purple-500 peer-checked:bg-purple-950/40 p-3.5 rounded-xl text-center transition hover:border-purple-600/50">
+                                    <div class="text-2xl mb-1">🔍</div>
+                                    <div class="text-xs font-bold text-slate-200">لغز بوليسي</div>
+                                    <div class="text-[10px] text-slate-400 mt-0.5">تحري واستكشاف أدلة</div>
                                 </div>
                             </label>
                         </div>
                     </div>
 
-                    <button type="submit" id="generate-btn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-purple-600/30 transition flex items-center justify-center gap-2">
-                        <span>أنشئ المغامرة التكيفية</span>
-                        <span>⚡</span>
+                    <!-- Client Validation Message -->
+                    <div id="setup-validation-msg" class="hidden text-xs bg-amber-950/70 border border-amber-800 text-amber-200 p-3 rounded-xl flex items-center gap-2" role="alert">
+                        <span>⚠️</span> <span id="setup-validation-text">يرجى استكمال الحقول المطلوبة.</span>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <button type="submit" id="generate-btn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-purple-600/30 transition flex items-center justify-center gap-2.5 text-base focus:ring-2 focus:ring-purple-400">
+                        <span id="generate-btn-spinner" class="hidden w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        <span id="generate-btn-text">توليد المغامرة التكيفية</span>
+                        <span id="generate-btn-icon">⚡</span>
                     </button>
                 </form>
 
                 <!-- ERROR CONTAINER -->
-                <div id="error-container" aria-live="assertive" class="hidden bg-red-950/70 border border-red-800 rounded-xl p-4 text-xs text-red-200 space-y-3 mt-4">
+                <div id="error-container" aria-live="assertive" class="hidden bg-red-950/80 border border-red-800 rounded-xl p-4 text-xs text-red-200 space-y-3 mt-4">
                     <div class="flex items-center gap-2 font-bold text-sm">
                         <span>⚠️</span> <span id="error-title">تعثر توليد المغامرة الذكية</span>
                     </div>
-                    <p id="error-message-text" class="leading-relaxed"></p>
+                    <p id="error-message-text" class="leading-relaxed text-slate-300"></p>
                     <div class="flex justify-end">
-                        <button id="retry-btn" type="button" class="bg-red-800 hover:bg-red-700 text-white font-bold py-1.5 px-4 rounded-lg transition">
+                        <button id="retry-btn" type="button" class="bg-red-800 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition">
                             🔄 إعادة المحاولة
                         </button>
                     </div>
@@ -160,16 +254,17 @@
         </section>
 
         <!-- LOADING SCREEN -->
-        <section id="screen-loading" class="screen-view hidden text-center py-12">
-            <div class="bg-slate-900/90 border border-purple-900/40 rounded-2xl p-8 max-w-md mx-auto story-card-shadow space-y-6">
+        <section id="screen-loading" class="screen-view hidden text-center py-12" role="status" aria-live="polite">
+            <div class="bg-slate-900/95 border border-purple-900/50 rounded-2xl p-8 max-w-md mx-auto story-card-shadow space-y-6">
                 <div class="relative w-20 h-20 mx-auto">
                     <div class="absolute inset-0 rounded-full border-4 border-purple-600/20 animate-ping"></div>
                     <div class="absolute inset-0 rounded-full border-4 border-purple-500 border-t-transparent animate-spin"></div>
                     <div class="absolute inset-0 flex items-center justify-center text-2xl">🧠</div>
                 </div>
-                <div>
-                    <h3 class="text-xl font-bold text-purple-300">محرك الذاكرة الذكية يولد اللعبة...</h3>
-                    <p id="loading-status-text" aria-live="polite" class="text-sm text-slate-400 mt-2">جارِ تحليل نص الدرس واستدعاء سياق الطالب السابق...</p>
+                <div class="space-y-2">
+                    <h3 class="text-xl font-bold text-purple-300">محرك الذاكرة الذكية يصيغ المغامرة...</h3>
+                    <p id="loading-status-text" class="text-sm font-semibold text-purple-200 transition-all duration-300">تحليل نص الدرس واستعادة الذاكرة المعرفية...</p>
+                    <p id="loading-stage-subtext" class="text-xs text-slate-400">يرجى الانتظار ثوانٍ معدودة لتجهيز المحتوى التعليمي</p>
                 </div>
             </div>
         </section>
@@ -179,39 +274,40 @@
             <div class="bg-slate-900/90 border border-purple-900/40 rounded-2xl p-6 md:p-8 story-card-shadow space-y-6">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-4">
                     <div>
-                        <span class="text-xs bg-purple-900/60 text-purple-300 px-3 py-1 rounded-full font-semibold">مقدمة القصة</span>
+                        <span class="text-xs bg-purple-950 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full font-semibold">📜 مقدمة المهمة</span>
                         <h2 id="intro-game-title" class="text-2xl md:text-3xl font-bold text-white mt-2">عنوان المغامرة</h2>
                     </div>
-                    <button id="intro-speak-btn" class="bg-slate-800 hover:bg-slate-700 text-purple-300 p-2.5 rounded-xl border border-slate-700 transition flex items-center gap-1.5 text-xs font-semibold">
+                    <button id="intro-speak-btn" class="bg-slate-800 hover:bg-slate-700 text-purple-300 px-3.5 py-2 rounded-xl border border-slate-700 transition flex items-center gap-1.5 text-xs font-semibold focus:ring-2 focus:ring-purple-500">
                         <span>🔊</span> استماع
                     </button>
                 </div>
 
-                <div class="relative h-48 md:h-56 rounded-xl overflow-hidden bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-900 border border-purple-800/40 flex items-center justify-center p-6 text-center">
-                    <div class="absolute inset-0 opacity-25 bg-[radial-gradient(#c026d3_1px,transparent_1px)] [background-size:16px_16px]"></div>
-                    <div class="relative z-10 space-y-2">
-                        <div id="intro-visual-icon" class="text-4xl mb-1">🌟</div>
+                <div class="relative rounded-2xl overflow-hidden bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-900 border border-purple-800/40 p-6 md:p-8 text-center space-y-3 shadow-inner">
+                    <div class="absolute inset-0 opacity-20 bg-[radial-gradient(#c026d3_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                    <div class="relative z-10 space-y-3">
+                        <div id="intro-visual-icon" class="text-5xl mb-2">🌟</div>
                         <h3 id="intro-mission-title" class="text-lg md:text-xl font-bold text-purple-200">المهمة الرئيسية</h3>
-                        <p id="intro-mission-desc" class="text-xs md:text-sm text-slate-300 max-w-lg mx-auto leading-relaxed"></p>
+                        <p id="intro-mission-desc" class="text-xs md:text-sm text-slate-300 max-w-xl mx-auto leading-relaxed bg-slate-950/60 p-4 rounded-xl border border-purple-900/30"></p>
                     </div>
                 </div>
 
-                <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-4 flex items-start gap-4">
-                    <div class="w-12 h-12 rounded-xl bg-purple-600/30 border border-purple-500/50 flex items-center justify-center text-2xl flex-shrink-0">
+                <!-- Companion Box -->
+                <div class="bg-slate-950/90 border border-purple-900/40 rounded-xl p-4 md:p-5 flex items-start gap-4">
+                    <div class="w-14 h-14 rounded-2xl bg-purple-600/20 border border-purple-500/40 flex items-center justify-center text-3xl flex-shrink-0 shadow-md">
                         🧙‍♂️
                     </div>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <h4 id="char-name" class="font-bold text-purple-300 text-sm">اسم الشخصية</h4>
-                            <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">مرافقك في الرحلة</span>
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <h4 id="char-name" class="font-bold text-purple-300 text-sm md:text-base">اسم الشخصية</h4>
+                            <span class="text-[10px] bg-purple-950 text-purple-300 border border-purple-800 px-2 py-0.5 rounded-full">مرافقك التعليمي</span>
                         </div>
-                        <p id="char-desc" class="text-xs text-slate-400 mt-0.5"></p>
-                        <p id="char-dialogue" class="text-sm text-slate-200 mt-2 italic font-amiri text-lg bg-slate-900/50 p-3 rounded-lg border border-purple-950"></p>
+                        <p id="char-desc" class="text-xs text-slate-400"></p>
+                        <p id="char-dialogue" class="text-base text-purple-100 italic font-amiri bg-slate-900/90 p-3.5 rounded-xl border border-purple-900/50 mt-2 leading-relaxed"></p>
                     </div>
                 </div>
 
-                <button id="start-mission-btn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg shadow-purple-600/30 transition flex items-center justify-center gap-2 text-base">
-                    <span>ابدأ المهمة</span>
+                <button id="start-mission-btn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-purple-600/30 transition flex items-center justify-center gap-2 text-base md:text-lg focus:ring-2 focus:ring-purple-400">
+                    <span>انطلق إلى المهمة الأولى</span>
                     <span>⚔️</span>
                 </button>
             </div>
@@ -221,42 +317,61 @@
         <section id="screen-game" class="screen-view hidden">
             <div class="bg-slate-900/90 border border-purple-900/40 rounded-2xl p-6 md:p-8 story-card-shadow space-y-6">
                 
-                <div class="flex flex-wrap justify-between items-center gap-3 border-b border-slate-800 pb-4">
-                    <div class="flex items-center gap-3">
-                        <span id="scene-counter" class="text-xs font-bold bg-purple-950 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full">المشهد 1 من 3</span>
-                        <span id="adaptation-badge" class="hidden text-xs bg-amber-950/80 text-amber-300 border border-amber-700/50 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
-                            <span>⚡</span> <span id="adaptation-text">تم تقديم مساعدة مخصصة</span>
-                        </span>
+                <!-- Game Header & Progress Bar -->
+                <div class="space-y-3 border-b border-slate-800 pb-4">
+                    <div class="flex flex-wrap justify-between items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <span id="scene-counter" class="text-xs font-bold bg-purple-950 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full">المشهد 1 من 3</span>
+                            <span id="adaptation-badge" class="hidden text-xs bg-amber-950/80 text-amber-300 border border-amber-700/50 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
+                                <span>⚡</span> <span id="adaptation-text">مساعدة مخصصة</span>
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button id="hint-btn" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 transition flex items-center gap-1 font-semibold focus:ring-2 focus:ring-purple-500">
+                                <span>💡</span> تلميح
+                            </button>
+                            <button id="scene-speak-btn" class="text-xs bg-slate-800 hover:bg-slate-700 text-purple-300 px-3 py-2 rounded-lg border border-slate-700 transition flex items-center gap-1 font-semibold focus:ring-2 focus:ring-purple-500">
+                                <span>🔊</span> سرد
+                            </button>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button id="hint-btn" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1.5 rounded-lg border border-slate-700 transition flex items-center gap-1">
-                            <span>💡</span> تلميح
-                        </button>
-                        <button id="scene-speak-btn" class="text-xs bg-slate-800 hover:bg-slate-700 text-purple-300 px-3 py-1.5 rounded-lg border border-slate-700 transition flex items-center gap-1">
-                            <span>🔊</span> سرد
-                        </button>
+
+                    <!-- Progress Bar -->
+                    <div class="space-y-1">
+                        <div class="flex justify-between items-center text-[11px] text-slate-400 font-semibold">
+                            <span>تقدم المغامرة</span>
+                            <span id="progress-percent-text">33%</span>
+                        </div>
+                        <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800">
+                            <div id="game-progress-bar" class="bg-gradient-to-r from-purple-600 to-pink-500 h-full w-1/3 transition-all duration-500"></div>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Scene Title & Narration -->
                 <div class="space-y-2">
                     <h3 id="scene-title" class="text-xl font-bold text-white">عنوان المشهد</h3>
-                    <p id="scene-narration" class="text-sm text-slate-300 leading-relaxed bg-slate-950/50 p-4 rounded-xl border border-slate-800/80"></p>
+                    <p id="scene-narration" class="text-sm text-slate-200 leading-relaxed bg-slate-950/60 p-4 rounded-xl border border-slate-800/80"></p>
                 </div>
 
-                <div id="hint-container" class="hidden bg-amber-950/30 border border-amber-800/50 p-4 rounded-xl text-xs text-amber-200 flex items-start gap-3">
+                <!-- Hint Container -->
+                <div id="hint-container" class="hidden bg-amber-950/40 border border-amber-800/60 p-4 rounded-xl text-xs text-amber-200 flex items-start gap-3 animate-fade-in" role="note">
                     <span class="text-lg">💡</span>
                     <div>
-                        <strong class="block font-bold mb-1">تلميح إضافي:</strong>
-                        <p id="hint-text"></p>
+                        <strong class="block font-bold mb-1">تلميح الذكاء المعرفي:</strong>
+                        <p id="hint-text" class="leading-relaxed"></p>
                     </div>
                 </div>
 
-                <div id="minigame-container" class="bg-slate-950 border border-slate-800/80 rounded-xl p-5 space-y-4"></div>
+                <!-- Mini-Game Component Area -->
+                <div id="minigame-container" class="bg-slate-950 border border-slate-800/90 rounded-xl p-4 md:p-6 space-y-4"></div>
 
-                <div id="feedback-container" aria-live="polite" class="hidden p-4 rounded-xl text-sm border"></div>
+                <!-- Feedback Message Container -->
+                <div id="feedback-container" aria-live="polite" class="hidden p-4 rounded-xl text-sm border animate-fade-in"></div>
 
+                <!-- Action Button Container -->
                 <div id="scene-action-container">
-                    <button id="submit-game-btn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3 px-6 rounded-xl transition shadow-md">
+                    <button id="submit-game-btn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3.5 px-6 rounded-xl transition shadow-md focus:ring-2 focus:ring-purple-400 outline-none text-base">
                         تحقق من الإجابة
                     </button>
                 </div>
@@ -271,32 +386,33 @@
                 </div>
                 <div>
                     <span class="text-xs bg-purple-950 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full font-semibold">اكتملت المهمة وحُدّثت الذاكرة التكيفية</span>
-                    <h2 class="text-2xl md:text-3xl font-bold text-white mt-2">نهاية المغامرة</h2>
+                    <h2 class="text-2xl md:text-3xl font-bold text-white mt-2">نهاية المغامرة بنجاح!</h2>
                 </div>
 
-                <p id="ending-story-text" class="text-sm md:text-base text-slate-300 max-w-xl mx-auto leading-relaxed bg-slate-950/60 p-5 rounded-xl border border-slate-800"></p>
+                <p id="ending-story-text" class="text-sm md:text-base text-slate-200 max-w-xl mx-auto leading-relaxed bg-slate-950/60 p-5 rounded-xl border border-slate-800"></p>
 
+                <!-- Result Score Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-right">
-                    <div class="bg-slate-950 border border-green-900/50 p-4 rounded-xl space-y-2">
+                    <div class="bg-slate-950 border border-green-900/60 p-4 rounded-xl space-y-2">
                         <h4 class="text-xs font-bold text-green-400 flex items-center gap-1.5">
                             <span>✅</span> مفاهيم تم إتقانها
                         </h4>
-                        <ul id="mastered-concepts-list" class="text-xs text-slate-300 space-y-1 list-disc list-inside"></ul>
+                        <ul id="mastered-concepts-list" class="text-xs text-slate-300 space-y-1.5 list-disc list-inside"></ul>
                     </div>
-                    <div class="bg-slate-950 border border-amber-900/50 p-4 rounded-xl space-y-2">
+                    <div class="bg-slate-950 border border-amber-900/60 p-4 rounded-xl space-y-2">
                         <h4 class="text-xs font-bold text-amber-400 flex items-center gap-1.5">
                             <span>📌</span> مفاهيم تم حفظها للمراجعة القادمة
                         </h4>
-                        <ul id="review-concepts-list" class="text-xs text-slate-300 space-y-1 list-disc list-inside"></ul>
+                        <ul id="review-concepts-list" class="text-xs text-slate-300 space-y-1.5 list-disc list-inside"></ul>
                     </div>
                 </div>
 
-                <div class="flex flex-wrap justify-center gap-4 pt-2">
-                    <button id="ending-report-btn" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition text-sm flex items-center gap-2">
-                        <span>📊</span> عرض تقرير المعلم
+                <div class="flex flex-wrap justify-center gap-3 pt-2">
+                    <button id="ending-report-btn" class="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-3.5 px-6 rounded-xl shadow-lg transition text-sm flex items-center gap-2 focus:ring-2 focus:ring-purple-400">
+                        <span>📊</span> عرض تقرير المعلم التشخيصي
                     </button>
-                    <button id="ending-new-adventure-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-3 px-6 rounded-xl border border-slate-700 transition text-sm">
-                        🔄 مغامرة جديدة
+                    <button id="ending-new-adventure-btn" class="bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-3.5 px-6 rounded-xl border border-slate-700 transition text-sm focus:ring-2 focus:ring-purple-400">
+                        🔄 بدء مغامرة جديدة
                     </button>
                 </div>
             </div>
@@ -307,10 +423,10 @@
             <div class="bg-slate-900/90 border border-purple-900/40 rounded-2xl p-6 md:p-8 story-card-shadow space-y-6">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-4">
                     <div>
-                        <span class="text-xs bg-purple-950 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full font-semibold">لوحة المعلم التشخيصية والذاكرة</span>
-                        <h2 class="text-2xl font-bold text-white mt-2">تقرير الأداء المعرفي للطلاب</h2>
+                        <span class="text-xs bg-purple-950 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full font-semibold">📋 لوحة المعلم التشخيصية</span>
+                        <h2 class="text-2xl font-bold text-white mt-2">تقرير الأداء المعرفي والذاكرة</h2>
                     </div>
-                    <button id="report-back-btn" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-xl border border-slate-700 transition">
+                    <button id="report-back-btn" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3.5 py-2 rounded-xl border border-slate-700 transition focus:ring-2 focus:ring-purple-500">
                         ← العودة لنتيجة القصة
                     </button>
                 </div>
@@ -318,7 +434,7 @@
                 <div id="teacher-report-content" class="space-y-4 text-sm text-slate-300"></div>
 
                 <div class="pt-4 border-t border-slate-800 flex justify-end">
-                    <button id="report-print-btn" class="bg-slate-800 hover:bg-slate-700 text-purple-300 px-4 py-2 rounded-xl border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
+                    <button id="report-print-btn" class="bg-slate-800 hover:bg-slate-700 text-purple-300 px-4 py-2.5 rounded-xl border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition focus:ring-2 focus:ring-purple-500">
                         <span>🖨️</span> طباعة التقرير
                     </button>
                 </div>
@@ -331,6 +447,9 @@
     <footer class="text-center py-4 text-xs text-slate-500 border-t border-slate-900 mt-8">
         حُرّاس المعرفة &copy; 2025 — نظام المغامرات التعليمية التكيفية والذاكرة الذكية
     </footer>
+
+    <!-- Global Audio TTS Player -->
+    <audio id="global-tts-player" class="hidden" preload="none"></audio>
 
     <script type="module" src="/src/main.js"></script>
 </body>

@@ -2,14 +2,18 @@ import { GoogleGenAI } from '@google/genai';
 import { buildGenerateGamePrompt } from '../prompts/generateGamePrompt.js';
 import { gameOutputSchema } from '../schemas/gameSchema.js';
 
-export function getLLMProviderInfo() {
-  const geminiKey = process.env.GEMINI_API_KEY;
-  const openrouterKey = process.env.OPENROUTER_API_KEY;
-  const preferredProvider = (process.env.LLM_PROVIDER || 'auto').toLowerCase();
+export function getLLMProviderInfo(customProvider, customApiKey) {
+  const geminiKey = (customProvider === 'gemini' && customApiKey) ? customApiKey : process.env.GEMINI_API_KEY;
+  const openrouterKey = (customProvider === 'openrouter' && customApiKey) ? customApiKey : process.env.OPENROUTER_API_KEY;
+  const genericKey = (customProvider && customApiKey) ? customApiKey : '';
+
+  const preferredProvider = (customProvider && customProvider !== 'auto')
+    ? customProvider.toLowerCase()
+    : (process.env.LLM_PROVIDER || 'auto').toLowerCase();
   const isDemoMode = process.env.DEMO_MODE === 'true';
 
-  const geminiConfigured = Boolean(geminiKey && geminiKey.trim().length > 0);
-  const openrouterConfigured = Boolean(openrouterKey && openrouterKey.trim().length > 0);
+  const geminiConfigured = Boolean((geminiKey || genericKey) && (geminiKey || genericKey).trim().length > 0);
+  const openrouterConfigured = Boolean((openrouterKey || genericKey) && (openrouterKey || genericKey).trim().length > 0);
 
   let activeProvider = 'none';
 
@@ -33,22 +37,27 @@ export function getLLMProviderInfo() {
     ? (process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash')
     : (process.env.GEMINI_MODEL || 'gemini-2.5-flash');
 
+  const resolvedApiKey = activeProvider === 'openrouter'
+    ? (openrouterKey || genericKey)
+    : (activeProvider === 'gemini' ? (geminiKey || genericKey) : '');
+
   return {
     activeProvider,
     geminiConfigured,
     openrouterConfigured,
     apiKeyConfigured: geminiConfigured || openrouterConfigured,
     model,
-    demoMode: isDemoMode
+    demoMode: isDemoMode,
+    resolvedApiKey
   };
 }
 
-export async function generateGameService({ lessonTitle, studentLevel, lessonText, storyTheme, memory }) {
-  const providerInfo = getLLMProviderInfo();
-  const { activeProvider, demoMode } = providerInfo;
+export async function generateGameService({ lessonTitle, studentLevel, lessonText, storyTheme, memory, provider, apiKey }) {
+  const providerInfo = getLLMProviderInfo(provider, apiKey);
+  const { activeProvider, demoMode, resolvedApiKey } = providerInfo;
 
   if (activeProvider === 'none') {
-    throw new Error('لم يتم تكوين أي مفتاح API (GEMINI_API_KEY أو OPENROUTER_API_KEY) على الخادم. يرجى ضبط المفتاح في ملف .env');
+    throw new Error('لم يتم تكوين أي مفتاح API (Gemini أو OpenRouter). يرجى تزويد المفتاح في الإعدادات أو ضبطه في الخادم.');
   }
 
   if (activeProvider === 'demo') {
@@ -63,10 +72,10 @@ export async function generateGameService({ lessonTitle, studentLevel, lessonTex
 
     if (activeProvider === 'openrouter') {
       console.log(` Calling OpenRouter API using model: ${providerInfo.model}`);
-      rawText = await callOpenRouterAPI(promptText, providerInfo.model);
+      rawText = await callOpenRouterAPI(promptText, providerInfo.model, resolvedApiKey);
     } else if (activeProvider === 'gemini') {
       console.log(` Calling Google Gemini API using model: ${providerInfo.model}`);
-      rawText = await callGeminiAPI(promptText, providerInfo.model);
+      rawText = await callGeminiAPI(promptText, providerInfo.model, resolvedApiKey);
     }
 
     if (!rawText) {
@@ -302,8 +311,8 @@ function extractAndParseJSON(rawText) {
 }
 
 // OpenRouter API Call Handler
-async function callOpenRouterAPI(promptText, modelName) {
-  const apiKey = process.env.OPENROUTER_API_KEY;
+async function callOpenRouterAPI(promptText, modelName, overrideApiKey) {
+  const apiKey = overrideApiKey || process.env.OPENROUTER_API_KEY;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 60000);
 
@@ -353,8 +362,8 @@ async function callOpenRouterAPI(promptText, modelName) {
 }
 
 // Google Gemini API Call Handler
-async function callGeminiAPI(promptText, modelName) {
-  const apiKey = process.env.GEMINI_API_KEY;
+async function callGeminiAPI(promptText, modelName, overrideApiKey) {
+  const apiKey = overrideApiKey || process.env.GEMINI_API_KEY;
   const ai = new GoogleGenAI({ apiKey });
 
   const controller = new AbortController();
@@ -469,3 +478,66 @@ function getDemoFallbackGame(title, theme, memory) {
     ]
   };
 }
+
+export async function extractTextFromImageService({ base64Data, mimeType, provider, apiKey }) {
+  const providerInfo = getLLMProviderInfo(provider, apiKey);
+  const { activeProvider, resolvedApiKey } = providerInfo;
+
+  if (activeProvider === 'none') {
+    throw new Error('لم يتم تكوين أي مفتاح API لاستخراج النص من الصورة. يرجى إدخال مفتاح API في الإعدادات.');
+  }
+
+  const promptText = "أنت مساعد استخراج نصوص تعليمية. استخرج كامل النص العربي والتعليمي الموجود في هذه الصورة بدقة عالية ورتبه في فقرات واضحة بدون إضافة تعليقات خارجية.";
+
+  try {
+    if (activeProvider === 'gemini') {
+      const ai = new GoogleGenAI({ apiKey: resolvedApiKey || process.env.GEMINI_API_KEY });
+      const response = await ai.models.generateContent({
+        model: providerInfo.model || 'gemini-2.5-flash',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { inlineData: { mimeType: mimeType || 'image/png', data: base64Data } },
+              { text: promptText }
+            ]
+          }
+        ]
+      });
+      return response.text || '';
+    } else if (activeProvider === 'openrouter') {
+      const key = resolvedApiKey || process.env.OPENROUTER_API_KEY;
+      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: providerInfo.model || 'google/gemini-2.5-flash',
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'image_url', image_url: { url: `data:${mimeType || 'image/png'};base64,${base64Data}` } },
+                { type: 'text', text: promptText }
+              ]
+            }
+          ]
+        })
+      });
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error?.message || 'فشل في استخراج النص من الصورة عبر OpenRouter.');
+      }
+      const data = await res.json();
+      return data.choices?.[0]?.message?.content || '';
+    }
+  } catch (err) {
+    console.error('Image OCR Extraction Error:', err);
+    throw new Error(err.message || 'حدث خطأ أثناء استخراج النص من الصورة.');
+  }
+
+  throw new Error('استخراج الصور غير مدعوم في هذا النمط.');
+}
+
