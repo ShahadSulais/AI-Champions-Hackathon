@@ -32,9 +32,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateCharacterCount() {
     if (lessonTextEl && counterEl) {
       const len = lessonTextEl.value.length;
-      counterEl.textContent = `${len} / 2000 حرف`;
+      counterEl.textContent = `${len} / 10000 حرف`;
       if (len < 50) {
         counterEl.className = 'text-xs text-amber-400 font-mono';
+      } else if (len > 10000) {
+        counterEl.className = 'text-xs text-red-400 font-mono font-bold';
       } else {
         counterEl.className = 'text-xs text-purple-300 font-mono';
       }
@@ -54,6 +56,40 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('save-settings-btn')?.addEventListener('click', handleSaveSettings);
   document.getElementById('clear-settings-btn')?.addEventListener('click', handleClearSettings);
   document.getElementById('toggle-key-visibility-btn')?.addEventListener('click', toggleKeyVisibility);
+
+  // Canvas Image Resizer Helper (compresses large camera photos to max 1600px)
+  async function compressImageFile(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1600;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const base64 = dataUrl.split(',')[1] || '';
+        resolve({ base64, mimeType: 'image/jpeg' });
+      };
+      img.onerror = reject;
+      img.src = URL.createObjectURL(file);
+    });
+  }
 
   // File Upload Handler (PDF, Image OCR, TXT)
   uploadFileBtn?.addEventListener('click', () => {
@@ -91,22 +127,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
       } else if (file.type.startsWith('image/')) {
-        if (fileUploadStatusText) fileUploadStatusText.textContent = `جارِ استخراج النص العربي من الصورة عبر الذكاء الاصطناعي...`;
+        if (fileUploadStatusText) fileUploadStatusText.textContent = `جارِ تحليل الضغط واستخراج النص من الصورة عبر الذكاء الاصطناعي...`;
         
-        const base64Data = await new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = reader.result || '';
-            const base64 = result.toString().split(',')[1] || '';
-            resolve(base64);
-          };
-          reader.onerror = reject;
-          reader.readAsDataURL(file);
-        });
+        const { base64, mimeType } = await compressImageFile(file);
 
         extractedText = await fetchExtractTextFromImage({
-          imageBase64: base64Data,
-          mimeType: file.type || 'image/png'
+          imageBase64: base64,
+          mimeType
         });
 
       } else {
@@ -117,6 +144,10 @@ document.addEventListener('DOMContentLoaded', () => {
           reader.onerror = reject;
           reader.readAsText(file);
         });
+      }
+
+      if (extractedText && extractedText.length > 9500) {
+        extractedText = extractedText.slice(0, 9500) + '\n\n[ملاحظة: تم اقتطاع باقي النص تلقائياً ليلائم الحد الأقصى المسموح به للنظام]';
       }
 
       if (lessonTextEl && extractedText) {

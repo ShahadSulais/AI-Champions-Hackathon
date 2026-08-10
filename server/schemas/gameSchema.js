@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const requestSchema = z.object({
   lessonTitle: z.string().min(1, 'عنوان الدرس مطلوب').max(200, 'عنوان الدرس طويل جداً'),
   studentLevel: z.string().min(1, 'المستوى التعليمي مطلوب').max(200, 'المستوى التعليمي طويل جداً'),
-  lessonText: z.string().min(10, 'نص الدرس قصير جداً').max(10000, 'نص الدرس طويل جداً (الحد الأقصى 10,000 حرف)'),
+  lessonText: z.string().min(10, 'نص الدرس قصير جداً').max(20000, 'نص الدرس طويل جداً (الحد الأقصى 20,000 حرف)'),
   storyTheme: z.string().min(1, 'السمة القصصية مطلوبة').max(100),
   provider: z.enum(['auto', 'gemini', 'openrouter']).optional(),
   apiKey: z.string().optional(),
