@@ -58,7 +58,7 @@ The experience responds to the learner's understanding:
 | Team Member | Role |
 |---|---|
 | **Shahad Sulais** | Team Member |
-| **Sira Aldawood** | Team Member |
+| **Sarah Aldawood** | Team Member |
 | **Reemas Alanizi** | Team Member |
 | **Malak Afa** | Team Member |
 
