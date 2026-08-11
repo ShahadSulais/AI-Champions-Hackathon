@@ -4,6 +4,46 @@ import { evaluateCurrentGame } from './gameEvaluation.js';
 import { playSound } from '../services/audioService.js';
 import { updateMemory } from '../services/memoryService.js';
 import { switchScreen } from '../ui/screens.js';
+import { triggerConfetti, triggerXpPopup } from '../services/effectsService.js';
+
+export function updateGamificationHud() {
+  const xpEl = document.getElementById('xp-counter');
+  if (xpEl) xpEl.textContent = state.studentSession.score || 0;
+
+  const streakEl = document.getElementById('streak-counter');
+  if (streakEl) streakEl.textContent = state.studentSession.streak || 0;
+
+  const comboBadge = document.getElementById('combo-badge');
+  if (comboBadge) {
+    const streak = state.studentSession.streak || 0;
+    if (streak >= 2) {
+      comboBadge.classList.remove('hidden');
+      comboBadge.textContent = `⚡ مضاعف x${Math.min(streak, 4)}`;
+    } else {
+      comboBadge.classList.add('hidden');
+    }
+  }
+
+  const soundBtn = document.getElementById('sound-toggle-btn');
+  if (soundBtn) {
+    soundBtn.replaceChildren();
+    const span = document.createElement('span');
+    span.textContent = state.studentSession.soundMuted ? '🔇' : '🔊';
+    soundBtn.appendChild(span);
+  }
+}
+
+export function setupSoundToggle() {
+  const soundBtn = document.getElementById('sound-toggle-btn');
+  if (soundBtn && !soundBtn.dataset.listener) {
+    soundBtn.dataset.listener = 'true';
+    soundBtn.addEventListener('click', () => {
+      state.studentSession.soundMuted = !state.studentSession.soundMuted;
+      updateGamificationHud();
+      if (!state.studentSession.soundMuted) playSound('select');
+    });
+  }
+}
 
 export function startGameplay(lessonTitle) {
   playSound('select');
@@ -71,6 +111,8 @@ export function loadScene(index) {
     }
   }
 
+  setupSoundToggle();
+  updateGamificationHud();
   renderMiniGame();
 }
 
@@ -115,11 +157,26 @@ export function submitCurrentGame() {
     state.studentSession.results[currIndex] = true;
     state.studentSession.answers[currIndex] = evalResult.evaluationDetails;
 
+    // Calculate score & streak bonus
+    state.studentSession.streak = (state.studentSession.streak || 0) + 1;
+    if (state.studentSession.streak > (state.studentSession.maxStreak || 0)) {
+      state.studentSession.maxStreak = state.studentSession.streak;
+    }
+    const streakMultiplier = Math.min(state.studentSession.streak, 4);
+    const earnedXp = 100 * streakMultiplier;
+    state.studentSession.score = (state.studentSession.score || 0) + earnedXp;
+
+    updateGamificationHud();
+
+    const submitBtn = document.getElementById('submit-game-btn');
+    triggerXpPopup(`+${earnedXp} XP`, submitBtn || feedbackEl);
+    triggerConfetti({ count: 45 });
+
     feedbackEl.className = "p-4 rounded-xl text-sm border bg-green-950/60 border-green-800 text-green-200 space-y-2";
 
     const header = document.createElement('div');
     header.className = 'font-bold flex items-center gap-1.5';
-    header.textContent = '✅ إجابة صحيحة وموفقة!';
+    header.textContent = `✅ إجابة صحيحة وموفقة! (+${earnedXp} XP)`;
 
     const text = document.createElement('p');
     text.className = 'text-xs text-slate-300';
@@ -151,6 +208,9 @@ export function submitCurrentGame() {
 
   } else {
     playSound('incorrect');
+    state.studentSession.streak = 0;
+    updateGamificationHud();
+
     if (attemptNum === 1) {
       state.studentSession.struggledScenesCount++;
       state.studentSession.answers[currIndex] = evalResult.evaluationDetails;
@@ -233,7 +293,31 @@ export function nextScene() {
 }
 
 export function finishGameSession() {
-  playSound('scene_complete');
+  playSound('victory');
+  triggerConfetti({ count: 80 });
+
+  const totalXpEl = document.getElementById('ending-total-xp');
+  if (totalXpEl) totalXpEl.textContent = `⭐ ${state.studentSession.score || 0} XP`;
+
+  const maxStreakEl = document.getElementById('ending-max-streak');
+  if (maxStreakEl) maxStreakEl.textContent = `🔥 ${state.studentSession.maxStreak || 0}`;
+
+  const accuracyEl = document.getElementById('ending-accuracy-percent');
+  const totalScenes = (state.gameState.scenes && state.gameState.scenes.length) || 3;
+  const correctScenesCount = Object.values(state.studentSession.results).filter(Boolean).length;
+  const accuracy = Math.round((correctScenesCount / totalScenes) * 100);
+  if (accuracyEl) accuracyEl.textContent = `${accuracy}%`;
+
+  const rankTitleEl = document.getElementById('ending-rank-title');
+  if (rankTitleEl) {
+    if (accuracy === 100 && (state.studentSession.score || 0) >= 300) {
+      rankTitleEl.textContent = '🥇 أسطورة حراس المعرفة (العلامة الكاملة)';
+    } else if (accuracy >= 66) {
+      rankTitleEl.textContent = '🥈 حارس المعرفة المتميز';
+    } else {
+      rankTitleEl.textContent = '🥉 حارس المعرفة المثابر';
+    }
+  }
 
   const endingText = document.getElementById('ending-story-text');
   if (endingText) endingText.textContent = state.gameState.ending;
@@ -289,3 +373,4 @@ export function finishGameSession() {
 
   switchScreen('screen-ending');
 }
+

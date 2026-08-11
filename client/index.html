@@ -35,9 +35,7 @@
     <header class="bg-slate-900/80 backdrop-blur-md border-b border-purple-900/50 sticky top-0 z-50 px-4 py-3">
         <div class="max-w-5xl mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/30 text-2xl">
-                    🛡️
-                </div>
+                <img src="/logo.jpg" alt="شعار حُرّاس المعرفة" class="h-11 w-auto rounded-xl shadow-lg border border-purple-500/30 object-contain bg-white/95 p-1 transition-transform hover:scale-105">
                 <div>
                     <h1 class="font-bold text-xl bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">حُرّاس المعرفة</h1>
                     <p class="text-xs text-slate-400">نظام المغامرات التعليمية والذاكرة التكيفية</p>
@@ -120,12 +118,15 @@
                 
                 <!-- Setup Header -->
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
-                    <div>
-                        <span class="text-xs bg-purple-950 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full font-semibold mb-2 inline-block">🎯 إعداد المعلم</span>
-                        <h2 class="text-2xl md:text-3xl font-bold text-white">صانع المغامرات التعليمية التكيفية</h2>
-                        <p class="text-sm text-slate-400 mt-1">حّول دروسك العلمية إلى تحدٍ تفاعلي مدعوم بالذكاء الاصطناعي والذاكرة التكيفية.</p>
+                    <div class="flex items-start gap-4">
+                        <img src="/logo.jpg" alt="شعار حُرّاس المعرفة" class="h-16 w-auto rounded-2xl shadow-lg border border-purple-500/40 object-contain bg-white/95 p-1.5 hidden sm:block">
+                        <div>
+                            <span class="text-xs bg-purple-950 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full font-semibold mb-2 inline-block">🎯 إعداد المعلم</span>
+                            <h2 class="text-2xl md:text-3xl font-bold text-white">صانع المغامرات التعليمية التكيفية</h2>
+                            <p class="text-sm text-slate-400 mt-1">حّول دروسك العلمية إلى تحدٍ تفاعلي مدعوم بالذكاء الاصطناعي والذاكرة التكيفية.</p>
+                        </div>
                     </div>
-                    <button type="button" id="demo-lesson-btn" class="text-xs bg-purple-900/50 hover:bg-purple-800 text-purple-200 border border-purple-600/50 px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 font-semibold focus:ring-2 focus:ring-purple-500">
+                    <button type="button" id="demo-lesson-btn" class="text-xs bg-purple-900/50 hover:bg-purple-800 text-purple-200 border border-purple-600/50 px-3.5 py-2.5 rounded-xl transition flex items-center gap-1.5 font-semibold focus:ring-2 focus:ring-purple-500 flex-shrink-0">
                         <span>✨</span> تحميل درس تجريبي
                     </button>
                 </div>
@@ -256,15 +257,21 @@
         <!-- LOADING SCREEN -->
         <section id="screen-loading" class="screen-view hidden text-center py-12" role="status" aria-live="polite">
             <div class="bg-slate-900/95 border border-purple-900/50 rounded-2xl p-8 max-w-md mx-auto story-card-shadow space-y-6">
-                <div class="relative w-20 h-20 mx-auto">
-                    <div class="absolute inset-0 rounded-full border-4 border-purple-600/20 animate-ping"></div>
-                    <div class="absolute inset-0 rounded-full border-4 border-purple-500 border-t-transparent animate-spin"></div>
-                    <div class="absolute inset-0 flex items-center justify-center text-2xl">🧠</div>
+                <!-- Game Loading Animated Moving PS Buttons -->
+                <div class="relative py-4 flex flex-col items-center justify-center space-y-4">
+                    <div class="flex items-center justify-center gap-3 py-2">
+                        <span class="ps-btn-badge ps-btn-triangle ps-loader-btn shadow-lg">△</span>
+                        <span class="ps-btn-badge ps-btn-circle ps-loader-btn shadow-lg">○</span>
+                        <span class="ps-btn-badge ps-btn-cross ps-loader-btn shadow-lg">✕</span>
+                        <span class="ps-btn-badge ps-btn-square ps-loader-btn shadow-lg">□</span>
+                    </div>
                 </div>
-                <div class="space-y-2">
-                    <h3 class="text-xl font-bold text-purple-300">محرك الذاكرة الذكية يصيغ المغامرة...</h3>
+
+                <div class="space-y-3">
+                    <span class="text-[11px] font-mono tracking-widest bg-purple-950 text-purple-300 border border-purple-700/60 px-3 py-1 rounded-full uppercase inline-block animate-pulse">🎮 GAME ADVENTURE LOADING...</span>
+                    <h3 class="text-xl font-bold text-white">محرك المغامرات الذكية يصيغ العالم...</h3>
                     <p id="loading-status-text" class="text-sm font-semibold text-purple-200 transition-all duration-300">تحليل نص الدرس واستعادة الذاكرة المعرفية...</p>
-                    <p id="loading-stage-subtext" class="text-xs text-slate-400">يرجى الانتظار ثوانٍ معدودة لتجهيز المحتوى التعليمي</p>
+                    <p id="loading-stage-subtext" class="text-xs text-slate-400">يرجى الانتظار ثوانٍ معدودة لبدء المهمة التعليمية</p>
                 </div>
             </div>
         </section>
@@ -285,7 +292,10 @@
                 <div class="relative rounded-2xl overflow-hidden bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-900 border border-purple-800/40 p-6 md:p-8 text-center space-y-3 shadow-inner">
                     <div class="absolute inset-0 opacity-20 bg-[radial-gradient(#c026d3_1px,transparent_1px)] [background-size:16px_16px]"></div>
                     <div class="relative z-10 space-y-3">
-                        <div id="intro-visual-icon" class="text-5xl mb-2">🌟</div>
+                        <div class="flex justify-center items-center gap-3 mb-1">
+                            <img src="/logo.jpg" alt="شعار حُرّاس المعرفة" class="h-16 md:h-20 w-auto rounded-2xl shadow-xl border border-purple-500/40 object-contain bg-white/95 p-1.5">
+                        </div>
+                        <div id="intro-visual-icon" class="text-3xl hidden">🌟</div>
                         <h3 id="intro-mission-title" class="text-lg md:text-xl font-bold text-purple-200">المهمة الرئيسية</h3>
                         <p id="intro-mission-desc" class="text-xs md:text-sm text-slate-300 max-w-xl mx-auto leading-relaxed bg-slate-950/60 p-4 rounded-xl border border-purple-900/30"></p>
                     </div>
@@ -320,17 +330,29 @@
                 <!-- Game Header & Progress Bar -->
                 <div class="space-y-3 border-b border-slate-800 pb-4">
                     <div class="flex flex-wrap justify-between items-center gap-3">
-                        <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-2 flex-wrap">
                             <span id="scene-counter" class="text-xs font-bold bg-purple-950 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full">المشهد 1 من 3</span>
+                            <span id="xp-badge" class="text-xs font-bold bg-amber-950/80 text-amber-300 border border-amber-700/50 px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                                <span>⭐</span> <span id="xp-counter">0</span> <span class="text-[10px] text-amber-400/80">XP</span>
+                            </span>
+                            <span id="streak-badge" class="text-xs font-bold bg-rose-950/80 text-rose-300 border border-rose-700/50 px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                                <span>🔥</span> <span id="streak-counter">0</span>
+                            </span>
+                            <span id="combo-badge" class="hidden text-xs font-bold bg-gradient-to-r from-purple-900 to-pink-900 text-purple-200 border border-purple-500/60 px-2.5 py-1 rounded-full animate-pulse shadow-md">
+                                ⚡ مضاعف x2
+                            </span>
                             <span id="adaptation-badge" class="hidden text-xs bg-amber-950/80 text-amber-300 border border-amber-700/50 px-2.5 py-1 rounded-full font-semibold flex items-center gap-1">
                                 <span>⚡</span> <span id="adaptation-text">مساعدة مخصصة</span>
                             </span>
                         </div>
                         <div class="flex items-center gap-2">
-                            <button id="hint-btn" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 transition flex items-center gap-1 font-semibold focus:ring-2 focus:ring-purple-500">
+                            <button id="sound-toggle-btn" type="button" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-2 rounded-lg border border-slate-700 transition flex items-center gap-1 font-semibold focus:ring-2 focus:ring-purple-500" title="تشغيل/كتم الصوت">
+                                <span>🔊</span>
+                            </button>
+                            <button id="hint-btn" type="button" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-2 rounded-lg border border-slate-700 transition flex items-center gap-1 font-semibold focus:ring-2 focus:ring-purple-500">
                                 <span>💡</span> تلميح
                             </button>
-                            <button id="scene-speak-btn" class="text-xs bg-slate-800 hover:bg-slate-700 text-purple-300 px-3 py-2 rounded-lg border border-slate-700 transition flex items-center gap-1 font-semibold focus:ring-2 focus:ring-purple-500">
+                            <button id="scene-speak-btn" type="button" class="text-xs bg-slate-800 hover:bg-slate-700 text-purple-300 px-3 py-2 rounded-lg border border-slate-700 transition flex items-center gap-1 font-semibold focus:ring-2 focus:ring-purple-500">
                                 <span>🔊</span> سرد
                             </button>
                         </div>
@@ -381,12 +403,31 @@
         <!-- SCREEN 4: Ending & Result -->
         <section id="screen-ending" class="screen-view hidden">
             <div class="bg-slate-900/90 border border-purple-900/40 rounded-2xl p-6 md:p-8 story-card-shadow space-y-6 text-center">
-                <div class="w-16 h-16 bg-purple-900/50 border border-purple-500/50 rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-lg shadow-purple-600/30">
+                <div class="w-16 h-16 bg-purple-900/50 border border-purple-500/50 rounded-2xl mx-auto flex items-center justify-center text-3xl shadow-lg shadow-purple-600/30 animate-bounce">
                     🏆
                 </div>
                 <div>
                     <span class="text-xs bg-purple-950 text-purple-300 border border-purple-700/50 px-3 py-1 rounded-full font-semibold">اكتملت المهمة وحُدّثت الذاكرة التكيفية</span>
                     <h2 class="text-2xl md:text-3xl font-bold text-white mt-2">نهاية المغامرة بنجاح!</h2>
+                    <div id="ending-achievement-badge" class="inline-block mt-3 bg-gradient-to-r from-amber-500/20 via-purple-500/20 to-pink-500/20 border border-amber-500/40 px-4 py-1.5 rounded-full text-xs font-bold text-amber-300">
+                        🏅 وسام: <span id="ending-rank-title">حارس المعرفة المتميز</span>
+                    </div>
+                </div>
+
+                <!-- Gamification Score Banner -->
+                <div class="grid grid-cols-3 gap-3 bg-slate-950/80 border border-purple-900/40 p-4 rounded-xl text-center">
+                    <div>
+                        <span class="block text-[11px] text-slate-400 font-semibold">إجمالي النقاط</span>
+                        <span id="ending-total-xp" class="text-xl font-bold text-amber-300">⭐ 0 XP</span>
+                    </div>
+                    <div>
+                        <span class="block text-[11px] text-slate-400 font-semibold">أطول سلسلة إجابات</span>
+                        <span id="ending-max-streak" class="text-xl font-bold text-rose-400">🔥 0</span>
+                    </div>
+                    <div>
+                        <span class="block text-[11px] text-slate-400 font-semibold">دقة الأداء</span>
+                        <span id="ending-accuracy-percent" class="text-xl font-bold text-emerald-400">100%</span>
+                    </div>
                 </div>
 
                 <p id="ending-story-text" class="text-sm md:text-base text-slate-200 max-w-xl mx-auto leading-relaxed bg-slate-950/60 p-5 rounded-xl border border-slate-800"></p>

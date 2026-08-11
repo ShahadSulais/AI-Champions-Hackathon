@@ -155,8 +155,26 @@ function createClassificationItemEl(item) {
   const itemEl = document.createElement('div');
   itemEl.id = `item-${item.id}`;
   itemEl.dataset.itemId = item.id;
-  itemEl.className = 'class-item bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs px-3.5 py-2.5 rounded-xl cursor-pointer transition font-semibold text-slate-100 focus:ring-2 focus:ring-purple-400 outline-none shadow-sm';
-  itemEl.textContent = item.text;
+  itemEl.className = 'class-item bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs px-3.5 py-2.5 rounded-xl cursor-pointer transition font-semibold text-slate-100 focus:ring-2 focus:ring-purple-400 outline-none shadow-sm flex items-center gap-2';
+
+  const psTypes = [
+    { class: 'ps-btn-cross', symbol: '✕' },
+    { class: 'ps-btn-circle', symbol: '○' },
+    { class: 'ps-btn-triangle', symbol: '△' },
+    { class: 'ps-btn-square', symbol: '□' }
+  ];
+  const itemIdx = state.interactiveData.items.findIndex(i => i.id === item.id);
+  const psStyle = psTypes[Math.abs(itemIdx >= 0 ? itemIdx : 0) % psTypes.length];
+
+  const psBadge = document.createElement('span');
+  psBadge.className = `ps-btn-badge ${psStyle.class}`;
+  psBadge.textContent = psStyle.symbol;
+
+  const textSpan = document.createElement('span');
+  textSpan.textContent = item.text;
+
+  itemEl.appendChild(psBadge);
+  itemEl.appendChild(textSpan);
   itemEl.setAttribute('tabindex', '0');
   itemEl.setAttribute('role', 'button');
 
@@ -285,9 +303,17 @@ function renderOrderingList(container) {
     const leftGroup = document.createElement('div');
     leftGroup.className = 'flex items-center gap-3';
 
+    const psTypes = [
+      { class: 'ps-btn-triangle', symbol: '△' },
+      { class: 'ps-btn-circle', symbol: '○' },
+      { class: 'ps-btn-cross', symbol: '✕' },
+      { class: 'ps-btn-square', symbol: '□' }
+    ];
+    const psStyle = psTypes[idx % psTypes.length];
+
     const numBadge = document.createElement('span');
-    numBadge.className = 'w-7 h-7 rounded-full bg-purple-900/80 border border-purple-700/60 text-purple-200 flex items-center justify-center text-xs font-bold flex-shrink-0';
-    numBadge.textContent = String(idx + 1);
+    numBadge.className = `ps-btn-badge ${psStyle.class} text-xs font-bold flex-shrink-0`;
+    numBadge.textContent = psStyle.symbol;
 
     const stepText = document.createElement('span');
     stepText.className = 'text-slate-100 leading-relaxed';

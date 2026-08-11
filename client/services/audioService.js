@@ -1,3 +1,5 @@
+import { state } from '../state/gameState.js';
+
 let audioCtx = null;
 let currentlySpeakingText = null;
 
@@ -13,6 +15,8 @@ function getAudioContext() {
 
 export function playSound(type) {
   try {
+    if (state.studentSession && state.studentSession.soundMuted) return;
+
     const ctx = getAudioContext();
     if (!ctx) return;
     if (ctx.state === 'suspended') {
@@ -47,13 +51,15 @@ export function playSound(type) {
       gainNode.gain.setValueAtTime(0.2, now);
       gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
       osc.start(now); osc.stop(now + 0.3);
-    } else if (type === 'scene_complete') {
+    } else if (type === 'scene_complete' || type === 'victory') {
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(400, now);
-      osc.frequency.exponentialRampToValueAtTime(800, now + 0.3);
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.setValueAtTime(659.25, now + 0.12);
+      osc.frequency.setValueAtTime(783.99, now + 0.24);
+      osc.frequency.setValueAtTime(1046.50, now + 0.36);
       gainNode.gain.setValueAtTime(0.2, now);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
-      osc.start(now); osc.stop(now + 0.35);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+      osc.start(now); osc.stop(now + 0.5);
     }
   } catch (err) {
     console.warn('Audio playSound warning:', err);
