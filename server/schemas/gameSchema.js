@@ -119,3 +119,25 @@ export const gameOutputSchema = z.object({
 
   return data;
 });
+
+export const realmChoiceSchema = z.object({
+  id: z.string(),
+  text: z.string()
+});
+
+export const realmQuestionSchema = z.object({
+  id: z.string(),
+  type: z.string().default('multiple_choice'),
+  question: z.string(),
+  choices: z.array(realmChoiceSchema).min(2),
+  correctChoiceId: z.string(),
+  explanation: z.string().default('تفسير علمي للمفهوم.'),
+  difficulty: z.number().default(1)
+});
+
+export const realmOutputSchema = z.object({
+  title: z.string().default('مهمة حُرّاس الأكوان'),
+  intro: z.string().default('انطلق في رحلة الأكوان التفاعلية واجتاز التحديات!'),
+  questions: z.array(realmQuestionSchema).min(1)
+});
+

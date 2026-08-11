@@ -1,6 +1,6 @@
 import express from 'express';
 import { getAudioBase64 } from 'google-tts-api';
-import { generateGameService, getLLMProviderInfo, extractTextFromImageService } from '../services/geminiService.js';
+import { generateGameService, generateRealmsGameService, getLLMProviderInfo, extractTextFromImageService } from '../services/geminiService.js';
 import { requestSchema } from '../schemas/gameSchema.js';
 
 const router = express.Router();
@@ -49,6 +49,37 @@ router.post('/games/generate', async (req, res, next) => {
     next(err);
   }
 });
+
+// POST /api/games/generate-realms
+router.post('/games/generate-realms', async (req, res, next) => {
+  try {
+    const validation = requestSchema.safeParse(req.body);
+    if (!validation.success) {
+      const errorMsg = (validation.error.issues || validation.error.errors || []).map(e => e.message).join(', ');
+      return res.status(400).json({ error: `بيانات الطلب غير صالحة: ${errorMsg}` });
+    }
+
+    const { lessonTitle, studentLevel, lessonText, storyTheme, memory, provider, apiKey } = validation.data;
+
+    const customProvider = req.headers['x-llm-provider'] || provider;
+    const customApiKey = req.headers['x-gemini-key'] || req.headers['x-openrouter-key'] || apiKey;
+
+    const realmsData = await generateRealmsGameService({
+      lessonTitle,
+      studentLevel,
+      lessonText,
+      storyTheme,
+      memory,
+      provider: customProvider,
+      apiKey: customApiKey
+    });
+
+    res.json(realmsData);
+  } catch (err) {
+    next(err);
+  }
+});
+
 
 // POST /api/extract-text
 router.post('/extract-text', async (req, res, next) => {

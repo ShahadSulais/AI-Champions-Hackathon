@@ -1,11 +1,24 @@
 import { DEMO_LESSON } from '../data/demoLesson.js';
 import { getMemory } from '../services/memoryService.js';
 import { playSound, speakText } from '../services/audioService.js';
-import { fetchGenerateGame, fetchExtractTextFromImage } from '../api/gameApi.js';
+import { fetchGenerateGame, fetchExtractTextFromImage, fetchGenerateRealmsGame } from '../api/gameApi.js';
 import { state } from '../state/gameState.js';
 import { openSettingsModal, closeSettingsModal, handleClearMemory, handleSaveSettings, handleClearSettings, toggleKeyVisibility } from '../ui/modal.js';
 import { switchScreen, initIntroScreen, showTeacherReport, returnToEnding, resetGameSession } from '../ui/screens.js';
 import { startGameplay, toggleHint } from '../game/gameSession.js';
+import { REALMS_FALLBACK_DATA } from '../data/realmsFallback.js';
+import { initRealmsSession } from '../game/realmsSession.js';
+import { renderRealmsOverlay } from '../game/realmsQuestionOverlay.js';
+import { renderKnowledgeMaze } from '../game/realms/knowledgeMaze.js';
+import { renderSkyIslands } from '../game/realms/skyIslands.js';
+import { renderCosmicRacer } from '../game/realms/cosmicRacer.js';
+import { renderNinjaGuardian } from '../game/realms/ninjaGuardian.js';
+
+
+
+
+
+
 
 document.addEventListener('DOMContentLoaded', () => {
   const setupForm = document.getElementById('setup-form');
@@ -185,7 +198,8 @@ document.addEventListener('DOMContentLoaded', () => {
     playSound('select');
   });
 
-  let stageInterval = null;
+  let currentRealmsData = null;
+  let activeLessonTitle = '';
 
   // Form submit handler with validation & stage loading
   async function handleFormSubmit(e) {
@@ -195,6 +209,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const studentLevel = document.getElementById('student-age')?.value.trim() || '';
     const lessonText = lessonTextEl?.value.trim() || '';
     const storyTheme = document.querySelector('input[name="story-theme"]:checked')?.value || 'مدينة مستقبلية';
+    const experienceMode = document.querySelector('input[name="experience-mode"]:checked')?.value || 'classic';
+
+    activeLessonTitle = lessonTitle;
 
     // Friendly validation check
     if (!lessonTitle || !studentLevel || !lessonText) {
@@ -223,6 +240,41 @@ document.addEventListener('DOMContentLoaded', () => {
     if (generateSpinner) generateSpinner.classList.remove('hidden');
     if (generateBtnText) generateBtnText.textContent = 'جارِ التحليل والتوليد...';
     if (generateBtnIcon) generateBtnIcon.classList.add('hidden');
+
+    if (experienceMode === 'portal_realms') {
+      currentRealmsData = { ...REALMS_FALLBACK_DATA, title: `مهمة ${lessonTitle || 'الدرس'} - بوابة الأكوان` };
+
+      const titleDisp = document.getElementById('realms-lesson-title-display');
+      if (titleDisp) titleDisp.textContent = currentRealmsData.title;
+
+      const introDisp = document.getElementById('realms-mission-intro-display');
+      if (introDisp) introDisp.textContent = currentRealmsData.intro;
+
+      switchScreen('screen-realms-worlds');
+
+      if (generateBtn) generateBtn.disabled = false;
+      if (generateSpinner) generateSpinner.classList.add('hidden');
+      if (generateBtnText) generateBtnText.textContent = 'توليد المغامرة التكيفية';
+
+      // Background AI generation for story & custom questions without blocking gameplay
+      fetchGenerateRealmsGame({
+        lessonTitle,
+        studentLevel,
+        lessonText,
+        storyTheme,
+        memory: getMemory()
+      }).then(aiData => {
+        if (aiData && Array.isArray(aiData.questions) && aiData.questions.length > 0) {
+          currentRealmsData = aiData;
+          if (titleDisp) titleDisp.textContent = aiData.title || `مهمة ${lessonTitle}`;
+          if (introDisp) introDisp.textContent = aiData.intro || 'اختر العوالم الأركيدية للبدء التفاعلي.';
+        }
+      }).catch(err => {
+        console.warn('Realms background AI load used fallback:', err);
+      });
+
+      return;
+    }
 
     switchScreen('screen-loading');
 
@@ -254,6 +306,8 @@ document.addEventListener('DOMContentLoaded', () => {
       clearInterval(stageInterval);
       initIntroScreen();
       switchScreen('screen-intro');
+
+
     } catch (err) {
       clearInterval(stageInterval);
       console.error('Generation Failed:', err);
@@ -277,6 +331,113 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setupForm?.addEventListener('submit', handleFormSubmit);
   retryBtn?.addEventListener('click', () => handleFormSubmit());
+
+  // Bind Portal of Realms World Selector Buttons
+  document.querySelectorAll('.start-realm-world-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const worldId = e.currentTarget.dataset.realmWorld || 'maze';
+      playSound('select');
+
+      function launchWorld(targetWorldId) {
+        initRealmsSession({
+          lessonTitle: activeLessonTitle || 'مهمة حُرّاس الأكوان',
+          selectedWorld: targetWorldId,
+          realmsData: currentRealmsData || REALMS_FALLBACK_DATA
+        });
+
+        switchScreen('screen-realms-game');
+
+        const overlayContainer = document.getElementById('realms-overlay-container');
+        if (targetWorldId === 'maze') {
+          renderKnowledgeMaze(
+            overlayContainer,
+            () => launchWorld('sky_islands'),
+            () => switchScreen('screen-realms-worlds')
+          );
+        } else if (targetWorldId === 'sky_islands') {
+          renderSkyIslands(
+            overlayContainer,
+            () => launchWorld('cosmic_racer'),
+            () => switchScreen('screen-realms-worlds')
+          );
+        } else if (targetWorldId === 'cosmic_racer') {
+          renderCosmicRacer(
+            overlayContainer,
+            () => launchWorld('ninja_guardian'),
+            () => switchScreen('screen-realms-worlds')
+          );
+        } else if (targetWorldId === 'ninja_guardian') {
+          renderNinjaGuardian(
+            overlayContainer,
+            () => switchScreen('screen-realms-worlds'),
+            () => switchScreen('screen-realms-worlds')
+          );
+        } else {
+          renderRealmsOverlay(
+            overlayContainer,
+            () => switchScreen('screen-realms-worlds'),
+            () => switchScreen('screen-realms-worlds')
+          );
+        }
+      }
+
+      launchWorld(worldId);
+    });
+  });
+
+
+
+  function openRealmsWorldScreen() {
+    playSound('select');
+    const lessonTitle = document.getElementById('lesson-title')?.value.trim() || 'درس المعرفة';
+    const storyTheme = document.querySelector('input[name="story-theme"]:checked')?.value || 'مدينة مستقبلية';
+    const studentLevel = document.getElementById('student-age')?.value.trim() || 'المستوى الابتدائي';
+    const lessonText = lessonTextEl?.value.trim() || '';
+
+    activeLessonTitle = lessonTitle;
+    currentRealmsData = { ...REALMS_FALLBACK_DATA, title: `مهمة ${lessonTitle} - عالم الأكوان والألعاب` };
+
+    const titleDisp = document.getElementById('realms-lesson-title-display');
+    if (titleDisp) titleDisp.textContent = currentRealmsData.title;
+
+    const introDisp = document.getElementById('realms-mission-intro-display');
+    if (introDisp) introDisp.textContent = `خوض العوالم التفاعلية الأربعة بالترتيب لدرس (${lessonTitle})`;
+
+    const themeBadge = document.getElementById('realms-theme-badge');
+    if (themeBadge) themeBadge.textContent = storyTheme;
+
+    const storyTextDisp = document.getElementById('realms-story-text-display');
+    if (storyTextDisp) {
+      storyTextDisp.textContent = `في عوالم (${storyTheme})، يخوض بطلنا "حارس النور" مهمة أركيدية سريعة لتعزيز الفهم المفاهيمي لدرس (${lessonTitle}). اجتاز الأكوان الأربعة المتتالية واجمع شظايا المعرفة لإعادة التوازن!`;
+    }
+
+    switchScreen('screen-realms-worlds');
+
+    // Background AI generation without blocking UI
+    if (lessonText && lessonText.length >= 15) {
+      fetchGenerateRealmsGame({
+        lessonTitle,
+        studentLevel,
+        lessonText,
+        storyTheme,
+        memory: getMemory()
+      }).then(aiData => {
+        if (aiData && Array.isArray(aiData.questions) && aiData.questions.length > 0) {
+          currentRealmsData = aiData;
+          if (titleDisp) titleDisp.textContent = aiData.title || `مهمة ${lessonTitle}`;
+          if (storyTextDisp && aiData.intro) storyTextDisp.textContent = aiData.intro;
+        }
+      }).catch(err => {
+        console.warn('Realms background AI load used fallback:', err);
+      });
+    }
+  }
+
+  document.getElementById('generate-realms-btn')?.addEventListener('click', openRealmsWorldScreen);
+  document.getElementById('header-realms-instant-btn')?.addEventListener('click', openRealmsWorldScreen);
+
+
+
 
   // Intro screen listeners
   document.getElementById('intro-speak-btn')?.addEventListener('click', () => {

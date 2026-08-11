@@ -2,6 +2,7 @@ const MEMORY_KEY = "knowledge_guardians_adaptive_memory_v4";
 
 export function getMemory() {
   try {
+    if (typeof localStorage === 'undefined') return { sessionsCount: 0, profileSummary: "طالب جديد.", recentConcepts: [], struggleAreas: [], timeline: [] };
     const mem = localStorage.getItem(MEMORY_KEY);
     return mem ? JSON.parse(mem) : { sessionsCount: 0, profileSummary: "طالب جديد في مستهل رحلته التعليمية.", recentConcepts: [], struggleAreas: [], timeline: [] };
   } catch (e) {
@@ -10,6 +11,7 @@ export function getMemory() {
 }
 
 export function updateMemory(sessionResult) {
+  if (typeof localStorage === 'undefined') return;
   let memory = getMemory();
   memory.sessionsCount++;
   const timestamp = new Date().toLocaleDateString('ar-SA', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -36,6 +38,7 @@ export function updateMemory(sessionResult) {
 
   localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
 }
+
 
 export function clearMemory() {
   if (confirm("هل أنت متأكد من مسح الذاكرة التكيفية للطالب؟")) {

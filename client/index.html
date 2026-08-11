@@ -49,6 +49,9 @@
                     المغامرة نشطة
                 </div>
             </div>
+
+
+
         </div>
     </header>
 
@@ -88,10 +91,16 @@
                     </div>
                 </div>
 
+                <div class="flex items-center gap-2 pt-2 border-t border-slate-800/80">
+                    <input type="checkbox" id="dev-unlock-worlds-checkbox" class="rounded border-slate-700 text-purple-600 focus:ring-purple-500" checked>
+                    <label for="dev-unlock-worlds-checkbox" class="text-slate-300 font-semibold cursor-pointer">فتح جميع عوالم الأكوان للاختبار (Dev Mode: Unlock All Worlds)</label>
+                </div>
+
                 <div class="flex justify-between items-center pt-1">
                     <button id="clear-settings-btn" type="button" class="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2.5 py-1 rounded border border-slate-700 transition">إعادة ضبط</button>
                     <button id="save-settings-btn" type="button" class="text-[11px] bg-purple-600 hover:bg-purple-500 text-white font-bold px-3.5 py-1 rounded transition">حفظ الإعدادات</button>
                 </div>
+
             </div>
 
             <!-- SECTION 2: Adaptive Memory Inspector -->
@@ -231,12 +240,29 @@
                         <span>⚠️</span> <span id="setup-validation-text">يرجى استكمال الحقول المطلوبة.</span>
                     </div>
 
-                    <!-- Submit Button -->
-                    <button type="submit" id="generate-btn" class="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-purple-600/30 transition flex items-center justify-center gap-2.5 text-base focus:ring-2 focus:ring-purple-400">
-                        <span id="generate-btn-spinner" class="hidden w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                        <span id="generate-btn-text">توليد المغامرة التكيفية</span>
-                        <span id="generate-btn-icon">⚡</span>
-                    </button>
+                    <!-- Action Buttons Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <!-- Button 1: Classic Story Mode -->
+                        <button type="submit" id="generate-btn" class="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold py-3.5 px-5 rounded-xl shadow-lg shadow-purple-600/30 transition flex items-center justify-center gap-3 text-sm focus:ring-2 focus:ring-purple-400">
+                            <span id="generate-btn-spinner" class="hidden w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            <span id="generate-btn-icon" class="text-xl">📜</span>
+                            <div class="flex flex-col items-start text-right">
+                                <span id="generate-btn-text" class="text-sm font-bold leading-tight">توليد المغامرة القصصية</span>
+                                <span class="text-[11px] font-normal text-purple-200/90 leading-tight mt-0.5">تحديات مفاهيمية مع مرافق قصصي ذكي</span>
+                            </div>
+                        </button>
+
+                        <!-- Button 2: Games Realm Mode -->
+                        <button type="button" id="generate-realms-btn" class="w-full bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-500 hover:to-purple-500 text-white font-bold py-3.5 px-5 rounded-xl shadow-lg shadow-pink-600/30 transition flex items-center justify-center gap-3 text-sm focus:ring-2 focus:ring-pink-400">
+                            <span class="text-xl">🎮</span>
+                            <div class="flex flex-col items-start text-right">
+                                <span class="text-sm font-bold leading-tight">عالم الألعاب</span>
+                                <span class="text-[11px] font-normal text-pink-200/90 leading-tight mt-0.5">تجربة أقرب لألعاب الفيديو</span>
+                            </div>
+                        </button>
+
+
+                    </div>
                 </form>
 
                 <!-- ERROR CONTAINER -->
@@ -253,6 +279,131 @@
                 </div>
             </div>
         </section>
+
+        <!-- SCREEN: Portal of Realms World Selection -->
+        <section id="screen-realms-worlds" class="screen-view hidden transition-all duration-300">
+            <div class="bg-slate-900/90 border border-purple-900/40 rounded-2xl p-6 md:p-8 story-card-shadow space-y-6">
+                <!-- Header -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-800 pb-4">
+                    <div>
+                        <span class="text-xs bg-pink-950 text-pink-300 border border-pink-700/50 px-3 py-1 rounded-full font-semibold mb-2 inline-block">🌌 بوابة الأكوان — Portal of Realms</span>
+                        <h2 id="realms-lesson-title-display" class="text-2xl md:text-3xl font-bold text-white">عالم الألعاب والأكوان المعرفية</h2>
+                        <p id="realms-mission-intro-display" class="text-sm text-slate-300 mt-1 leading-relaxed"></p>
+                    </div>
+                    <button type="button" id="realms-back-setup-btn" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3.5 py-2 rounded-xl transition flex items-center gap-1.5 font-semibold focus:ring-2 focus:ring-purple-500 flex-shrink-0">
+                        ← تغيير إعداد الدرس
+                    </button>
+                </div>
+
+                <!-- Short Mission Story Narrative Card -->
+                <div id="realms-story-narrative-card" class="bg-gradient-to-r from-purple-950/80 via-slate-950 to-pink-950/80 border border-purple-800/60 p-4 rounded-xl space-y-2 shadow-md">
+                    <div class="flex items-center justify-between text-xs font-bold">
+                        <span class="text-pink-300 flex items-center gap-1.5"><span>📖</span> قصة التحدي القصيرة:</span>
+                        <span id="realms-theme-badge" class="bg-purple-900/60 text-purple-200 border border-purple-700/50 px-2.5 py-0.5 rounded-full text-[10px]">مدينة مستقبلية</span>
+                    </div>
+                    <p id="realms-story-text-display" class="text-xs md:text-sm text-slate-200 leading-relaxed font-medium">
+                        تعرضت طاقة المعرفة للاختراق! يجب على بطلنا خوض الأكوان التفاعلية الأربعة بالترتيب وإعادة التوازن المعرفي.
+                    </p>
+                </div>
+
+
+                <!-- Worlds Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    
+                    <!-- World 1: Knowledge Maze -->
+                    <div class="realm-card bg-slate-950 border border-purple-800/60 hover:border-purple-500 rounded-2xl p-5 space-y-4 transition-all duration-200 hover:scale-[1.01] shadow-lg flex flex-col justify-between">
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-4xl p-2 bg-purple-950/80 rounded-xl border border-purple-700/60 shadow-inner">🌀</span>
+                                <span class="text-[10px] bg-purple-900/60 text-purple-200 border border-purple-700/50 px-2.5 py-1 rounded-full font-bold">متاح للعب ✓</span>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-lg font-bold text-white">متاهة المعرفة</h3>
+                                    <span class="text-[10px] text-purple-300 font-mono">(Knowledge Maze)</span>
+                                </div>
+                                <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">تحكم بشخصية "حارس النور" للوصول إلى بوابات الإجابة الصحيحة واجتياز عقبات المتاهة الأركيدية.</p>
+                            </div>
+                        </div>
+                        <button type="button" data-realm-world="maze" class="start-realm-world-btn w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 px-4 rounded-xl transition text-sm flex items-center justify-center gap-2 shadow-md">
+                            <span>دخول متاهة المعرفة</span>
+                            <span>➔</span>
+                        </button>
+                    </div>
+
+                    <!-- World 2: Sky Islands -->
+                    <div class="realm-card bg-slate-950 border border-sky-800/60 hover:border-sky-500 rounded-2xl p-5 space-y-4 transition-all duration-200 hover:scale-[1.01] shadow-lg flex flex-col justify-between">
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-4xl p-2 bg-sky-950/80 rounded-xl border border-sky-700/60 shadow-inner">☁️</span>
+                                <span class="text-[10px] bg-sky-900/60 text-sky-200 border border-sky-700/50 px-2.5 py-1 rounded-full font-bold">متاح للعب ✓</span>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-lg font-bold text-white">جزر السماء</h3>
+                                    <span class="text-[10px] text-sky-300 font-mono">(Sky Islands)</span>
+                                </div>
+                                <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">اقفز بين الجزر والمنصات التفاعلية الممثلة للإجابات للوصول إلى القمة المعرفية بالسموات.</p>
+                            </div>
+                        </div>
+                        <button type="button" data-realm-world="sky_islands" class="start-realm-world-btn w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-3 px-4 rounded-xl transition text-sm flex items-center justify-center gap-2 shadow-md">
+                            <span>صعود جزر السماء</span>
+                            <span>➔</span>
+                        </button>
+                    </div>
+
+                    <!-- World 3: Cosmic Racer -->
+                    <div class="realm-card bg-slate-950 border border-amber-800/60 hover:border-amber-500 rounded-2xl p-5 space-y-4 transition-all duration-200 hover:scale-[1.01] shadow-lg flex flex-col justify-between">
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-4xl p-2 bg-amber-950/80 rounded-xl border border-amber-700/60 shadow-inner">🏎️</span>
+                                <span class="text-[10px] bg-amber-900/60 text-amber-200 border border-amber-700/50 px-2.5 py-1 rounded-full font-bold">متاح للعب ✓</span>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-lg font-bold text-white">سباق المجرات</h3>
+                                    <span class="text-[10px] text-amber-300 font-mono">(Cosmic Racer)</span>
+                                </div>
+                                <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">اندفع بمركبتك النفاثة وانتقل بين مسارات الإجابة الصحيحة بأعلى سرعة لتجميع المضاعفات.</p>
+                            </div>
+                        </div>
+                        <button type="button" data-realm-world="cosmic_racer" class="start-realm-world-btn w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-4 rounded-xl transition text-sm flex items-center justify-center gap-2 shadow-md">
+                            <span>انطلاق سباق المجرات</span>
+                            <span>➔</span>
+                        </button>
+                    </div>
+
+                    <!-- World 4: Ninja Knowledge -->
+                    <div class="realm-card bg-slate-950 border border-amber-800/60 hover:border-amber-500 rounded-2xl p-5 space-y-4 transition-all duration-200 hover:scale-[1.01] shadow-lg flex flex-col justify-between">
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-4xl p-2 bg-amber-950/80 rounded-xl border border-amber-700/60 shadow-inner">🥷</span>
+                                <span class="text-[10px] bg-amber-900/60 text-amber-200 border border-amber-700/50 px-2.5 py-1 rounded-full font-bold">متاح للعب ✓</span>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="text-lg font-bold text-white">نينجا المعرفة</h3>
+                                    <span class="text-[10px] text-amber-300 font-mono">(Ninja Knowledge)</span>
+                                </div>
+                                <p class="text-xs text-slate-300 mt-1.5 leading-relaxed">تحدّ بالسيف الأركيدي واقطع خيار الإجابة الصحيح بمهارة كنينجا المعرفة!</p>
+                            </div>
+                        </div>
+                        <button type="button" data-realm-world="ninja_guardian" class="start-realm-world-btn w-full bg-amber-600 hover:bg-amber-500 text-white font-bold py-3 px-4 rounded-xl transition text-sm flex items-center justify-center gap-2 shadow-md">
+                            <span>بدء تحدي نينجا المعرفة</span>
+                            <span>➔</span>
+                        </button>
+                    </div>
+
+
+                </div>
+            </div>
+        </section>
+
+        <!-- SCREEN: Active Portal of Realms Session -->
+        <section id="screen-realms-game" class="screen-view hidden transition-all duration-300">
+            <div id="realms-overlay-container" class="w-full"></div>
+        </section>
+
 
         <!-- LOADING SCREEN -->
         <section id="screen-loading" class="screen-view hidden text-center py-12" role="status" aria-live="polite">

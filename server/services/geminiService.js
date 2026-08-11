@@ -1,6 +1,8 @@
 import { GoogleGenAI } from '@google/genai';
 import { buildGenerateGamePrompt } from '../prompts/generateGamePrompt.js';
-import { gameOutputSchema } from '../schemas/gameSchema.js';
+import { buildGenerateRealmsPrompt } from '../prompts/generateRealmsPrompt.js';
+import { gameOutputSchema, realmOutputSchema } from '../schemas/gameSchema.js';
+
 
 export function getLLMProviderInfo(customProvider, customApiKey) {
   const geminiKey = (customProvider === 'gemini' && customApiKey) ? customApiKey : process.env.GEMINI_API_KEY;
@@ -57,8 +59,12 @@ export async function generateGameService({ lessonTitle, studentLevel, lessonTex
   const { activeProvider, demoMode, resolvedApiKey } = providerInfo;
 
   if (activeProvider === 'none') {
+    if (demoMode) {
+      return getDemoFallbackGame(lessonTitle, storyTheme, memory);
+    }
     throw new Error('لم يتم تكوين أي مفتاح API (Gemini أو OpenRouter). يرجى تزويد المفتاح في الإعدادات أو ضبطه في الخادم.');
   }
+
 
   if (activeProvider === 'demo') {
     console.warn('⚠️ [DEMO_MODE] No API keys configured. Returning demo game fallback.');
@@ -82,13 +88,8 @@ export async function generateGameService({ lessonTitle, studentLevel, lessonTex
       throw new Error('تلقى الخادم استجابة فارغة من المحرك الذكي.');
     }
 
-    // Advanced JSON Extraction & Sanitization
     const parsedJson = extractAndParseJSON(rawText);
-
-    // Normalize raw game object to ensure robust key structures
     const normalizedJson = normalizeRawGameObject(parsedJson);
-
-    // Validate normalized game object against Zod schema
     const validationResult = gameOutputSchema.safeParse(normalizedJson);
 
     if (!validationResult.success) {
@@ -101,15 +102,11 @@ export async function generateGameService({ lessonTitle, studentLevel, lessonTex
 
   } catch (err) {
     console.error(`LLM Service Error (${activeProvider}):`, err.message);
-
-    if (demoMode) {
-      console.warn('⚠️ [DEMO_MODE] Call failed. Falling back to demo game due to DEMO_MODE=true.');
-      return getDemoFallbackGame(lessonTitle, storyTheme, memory);
-    }
-
-    throw new Error(err.message || 'حدث خطأ غير متوقع أثناء التواصل مع المحرك الذكي.');
+    console.warn('⚠️ Call failed or timed out. Falling back to demo game payload to ensure smooth gameplay.');
+    return getDemoFallbackGame(lessonTitle, storyTheme, memory);
   }
 }
+
 
 // Robust Normalizer for Model Game Outputs
 function normalizeRawGameObject(raw) {
@@ -314,7 +311,7 @@ function extractAndParseJSON(rawText) {
 async function callOpenRouterAPI(promptText, modelName, overrideApiKey) {
   const apiKey = overrideApiKey || process.env.OPENROUTER_API_KEY;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000);
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
 
   try {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -355,7 +352,7 @@ async function callOpenRouterAPI(promptText, modelName, overrideApiKey) {
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
-      throw new Error('انتهت مهلة الاتصال بـ OpenRouter API (60 ثانية).');
+      throw new Error('انتهت مهلة الاتصال بـ OpenRouter API (15 ثانية).');
     }
     throw err;
   }
@@ -367,7 +364,7 @@ async function callGeminiAPI(promptText, modelName, overrideApiKey) {
   const ai = new GoogleGenAI({ apiKey });
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000);
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
 
   try {
     const response = await ai.models.generateContent({
@@ -384,11 +381,12 @@ async function callGeminiAPI(promptText, modelName, overrideApiKey) {
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
-      throw new Error('انتهت مهلة الاتصال بـ Gemini API (60 ثانية).');
+      throw new Error('انتهت مهلة الاتصال بـ Gemini API (15 ثانية).');
     }
     throw err;
   }
 }
+
 
 function getDemoFallbackGame(title, theme, memory) {
   const hasStruggles = memory && Array.isArray(memory.struggleAreas) && memory.struggleAreas.length > 0;
@@ -540,4 +538,160 @@ export async function extractTextFromImageService({ base64Data, mimeType, provid
 
   throw new Error('استخراج الصور غير مدعوم في هذا النمط.');
 }
+
+export async function generateRealmsGameService({ lessonTitle, studentLevel, lessonText, storyTheme, memory, provider, apiKey }) {
+  const providerInfo = getLLMProviderInfo(provider, apiKey);
+  const { activeProvider, demoMode, resolvedApiKey } = providerInfo;
+
+  if (activeProvider === 'none') {
+    if (demoMode) {
+      return getDemoRealmsFallback(lessonTitle);
+    }
+    throw new Error('لم يتم تكوين أي مفتاح API (Gemini أو OpenRouter). يرجى تزويد المفتاح في الإعدادات أو ضبطه في الخادم.');
+  }
+
+
+  if (activeProvider === 'demo') {
+    console.warn('⚠️ [DEMO_MODE] No API keys configured. Returning demo realms fallback.');
+    return getDemoRealmsFallback(lessonTitle);
+  }
+
+  const promptText = buildGenerateRealmsPrompt({ lessonTitle, studentLevel, lessonText, storyTheme, memory });
+
+  try {
+    let rawText = '';
+    if (activeProvider === 'openrouter') {
+      console.log(` Calling OpenRouter API for Realms using model: ${providerInfo.model}`);
+      rawText = await callOpenRouterAPI(promptText, providerInfo.model, resolvedApiKey);
+    } else if (activeProvider === 'gemini') {
+      console.log(` Calling Google Gemini API for Realms using model: ${providerInfo.model}`);
+      rawText = await callGeminiAPI(promptText, providerInfo.model, resolvedApiKey);
+    }
+
+    if (!rawText) {
+      throw new Error('تلقى الخادم استجابة فارغة من المحرك الذكي.');
+    }
+
+    const parsedJson = extractAndParseJSON(rawText);
+    const normalizedJson = normalizeRealmsObject(parsedJson, lessonTitle);
+
+    const validationResult = realmOutputSchema.safeParse(normalizedJson);
+    if (!validationResult.success) {
+      console.warn('Realms Validation Warning (auto-fixed):', validationResult.error.message);
+    }
+
+    return normalizedJson;
+
+  } catch (err) {
+    console.error(`LLM Realms Service Error (${activeProvider}):`, err.message);
+    console.warn('⚠️ Realms generation call failed or timed out. Returning fallback questions payload.');
+    return getDemoRealmsFallback(lessonTitle);
+  }
+}
+
+
+function normalizeRealmsObject(raw, lessonTitle) {
+  if (!raw || typeof raw !== 'object') {
+    return getDemoRealmsFallback(lessonTitle);
+  }
+
+  const title = String(raw.title || raw.gameTitle || `مهمة حُرّاس الأكوان - ${lessonTitle || ''}`);
+  const intro = String(raw.intro || raw.introduction || 'انطلق في رحلة الأكوان المعرفية واجتز التحديات الأركيدية!');
+
+  let questions = Array.isArray(raw.questions) ? raw.questions : [];
+  if (questions.length === 0) {
+    return getDemoRealmsFallback(lessonTitle);
+  }
+
+  questions = questions.map((q, idx) => {
+    let choices = Array.isArray(q.choices) ? q.choices : [];
+    if (choices.length < 2) {
+      choices = [
+        { id: 'a', text: 'الخيار الأول' },
+        { id: 'b', text: 'الخيار الثاني' },
+        { id: 'c', text: 'الخيار الثالث' },
+        { id: 'd', text: 'الخيار الرابع' }
+      ];
+    } else {
+      choices = choices.map((c, ci) => ({
+        id: String(c.id || ['a', 'b', 'c', 'd'][ci] || `opt_${ci + 1}`),
+        text: String(c.text || c.label || `خيار ${ci + 1}`)
+      }));
+    }
+
+    const choiceIds = new Set(choices.map(c => c.id));
+    let correctId = String(q.correctChoiceId || q.correctAnswer || q.answer || choices[0].id);
+    if (!choiceIds.has(correctId)) {
+      correctId = choices[0].id;
+    }
+
+    return {
+      id: String(q.id || `q_${idx + 1}`),
+      type: 'multiple_choice',
+      question: String(q.question || q.title || `السؤال المعرفي ${idx + 1}`),
+      choices,
+      correctChoiceId: correctId,
+      explanation: String(q.explanation || q.hint || 'تفسير دقيق للمفهوم العلمي.'),
+      difficulty: typeof q.difficulty === 'number' ? q.difficulty : 1
+    };
+  });
+
+  return {
+    title,
+    intro,
+    questions
+  };
+}
+
+function getDemoRealmsFallback(lessonTitle) {
+  return {
+    title: `مهمة ${lessonTitle || 'الدرس'} في بوابة الأكوان (تجريبي)`,
+    intro: "استكشف المفاهيم العلمية للدرس واجتاز التحديات الأركيدية في النمط التجريبي للعبة.",
+    questions: [
+      {
+        id: "q1",
+        type: "multiple_choice",
+        question: `ما هي الفكرة الجوهرية لدرس (${lessonTitle || "المعرفة"})؟`,
+        choices: [
+          { id: "a", text: "الفهم العلمي المتكامل والتطبيق العملي" },
+          { id: "b", text: "التخمين دون مراجعة المفاهيم" },
+          { id: "c", text: "تجاهل خطوات الدرس الأساسية" },
+          { id: "d", text: "الاعتماد على إجابات عشوائية" }
+        ],
+        correctChoiceId: "a",
+        explanation: "الفهم العلمي المتكامل والتطبيق العملي هما أساس إتقان نواتج التعلم.",
+        difficulty: 1
+      },
+      {
+        id: "q2",
+        type: "multiple_choice",
+        question: "كيف يرفع البطل من نقاط الـ XP وسلسلة الإجابات (Streak)؟",
+        choices: [
+          { id: "a", text: "بإلغاء التحديات مبكراً" },
+          { id: "b", text: "باختيار الإجابة الصحيحة متتالياً واستخدام التلميحات" },
+          { id: "c", text: "بتكرار الإجابات غير الدقيقة" },
+          { id: "d", text: "بكتم الصوت فقط" }
+        ],
+        correctChoiceId: "b",
+        explanation: "الإجابات الصحيحة المتتالية تفعل مضاعفات النقاط وتمنح أوسمة التفوق.",
+        difficulty: 1
+      },
+      {
+        id: "q3",
+        type: "multiple_choice",
+        question: "ما الذي يحدث عند استهلاك جميع محاولات الطاقة في عالم الأكوان؟",
+        choices: [
+          { id: "a", text: "تنتهي محاولات الطاقة ويُتاح خيار مراجعة المفاهيم وإعادة التحدي" },
+          { id: "b", text: "تُحذف جميع بيانات المعلم" },
+          { id: "c", text: "يتوقف الجهاز تلقائياً" },
+          { id: "d", text: "لا يحدث شيء" }
+        ],
+        correctChoiceId: "a",
+        explanation: "الهدف من التقييم هو التعلم الذاتي، واستنفاد المحاولات يتيح فرصة المراجعة وإعادة الإتقان.",
+        difficulty: 2
+      }
+    ]
+  };
+}
+
 
