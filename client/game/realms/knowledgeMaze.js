@@ -104,10 +104,10 @@ export function renderKnowledgeMaze(containerEl, onWorldComplete, onReturnToWorl
 }
 
 function resetHeroAndEnemies() {
-  mazeState.hero = { col: 5, row: 5, targetCol: 5, targetRow: 5, x: 5, y: 5 };
+  mazeState.hero = { col: 5, row: 5, targetCol: 5, targetRow: 5, x: 5, y: 5, dir: 'right' };
   mazeState.enemies = [
-    { col: 1, row: 3, dirCol: 1, dirRow: 0, speed: 0.035, x: 1, y: 3 },
-    { col: 11, row: 7, dirCol: -1, dirRow: 0, speed: 0.035, x: 11, y: 7 }
+    { col: 1, row: 3, dirCol: 1, dirRow: 0, speed: 0.035, x: 1, y: 3, color: '#ef4444' }, // Blinky Red
+    { col: 11, row: 7, dirCol: -1, dirRow: 0, speed: 0.035, x: 11, y: 7, color: '#ec4899' }  // Pinky Pink
   ];
   mazeState.invulnerableUntil = 0;
 }
@@ -336,6 +336,12 @@ export function moveHero(deltaCol, deltaRow) {
 
   if (targetCol < 0 || targetCol >= 13 || targetRow < 0 || targetRow >= 11) return;
 
+  // Track direction for Pac-Man chomp orientation
+  if (deltaCol === 1) mazeState.hero.dir = 'right';
+  else if (deltaCol === -1) mazeState.hero.dir = 'left';
+  else if (deltaRow === 1) mazeState.hero.dir = 'down';
+  else if (deltaRow === -1) mazeState.hero.dir = 'up';
+
   // Check collision with walls (1)
   if (MAZE_GRID[targetRow][targetCol] === 1) {
     playSound('select');
@@ -493,17 +499,114 @@ function updateEnemiesLogic() {
   });
 }
 
-// Canvas Painting Logic (Original Graphic Assets)
+// Helper: Draw Classic Pac-Man Arcade Ghost
+function drawPacmanGhost(ctx, x, y, radius, color, dirCol = 1, dirRow = 0) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Ghost Body Path (Dome Head + Wavy Tentacle Bottom)
+  ctx.beginPath();
+  ctx.arc(0, -radius * 0.2, radius, Math.PI, 0, false);
+  ctx.lineTo(radius, radius * 0.7);
+
+  // Wavy Bottom Tentacles
+  const steps = 3;
+  const w = (radius * 2) / steps;
+  for (let i = steps; i > 0; i--) {
+    const startX = -radius + i * w;
+    const endX = -radius + (i - 1) * w;
+    const midX = (startX + endX) / 2;
+    ctx.quadraticCurveTo(midX, radius * (i % 2 === 0 ? 1.05 : 0.45), endX, radius * 0.7);
+  }
+
+  ctx.closePath();
+  ctx.fillStyle = color;
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Ghost Eyes (White Background, Deep Blue Pupils)
+  const eyeOffsetX = radius * 0.35;
+  const eyeOffsetY = -radius * 0.15;
+  const eyeR = radius * 0.32;
+  const pupilR = radius * 0.16;
+
+  [-eyeOffsetX, eyeOffsetX].forEach(ex => {
+    ctx.beginPath();
+    ctx.ellipse(ex, eyeOffsetY, eyeR * 0.8, eyeR, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+
+    const px = ex + dirCol * (eyeR * 0.35);
+    const py = eyeOffsetY + dirRow * (eyeR * 0.35);
+    ctx.beginPath();
+    ctx.arc(px, py, pupilR, 0, Math.PI * 2);
+    ctx.fillStyle = '#1d4ed8';
+    ctx.fill();
+  });
+
+  ctx.restore();
+}
+
+// Helper: Draw Pac-Man Hero
+function drawPacmanHero(ctx, x, y, radius, dir = 'right', now) {
+  let baseAngle = 0;
+  if (dir === 'left') baseAngle = Math.PI;
+  else if (dir === 'down') baseAngle = Math.PI / 2;
+  else if (dir === 'up') baseAngle = -Math.PI / 2;
+
+  // Mouth chomp animation (0 to 45 deg)
+  const chomp = Math.abs(Math.sin(now / 70)) * 0.25 * Math.PI;
+  const startAngle = baseAngle + chomp;
+  const endAngle = baseAngle + (2 * Math.PI - chomp);
+
+  ctx.save();
+  ctx.translate(x, y);
+
+  // Outer Aura Pulse
+  const pulse = Math.sin(now / 150) * 3;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius + 4 + pulse, 0, Math.PI * 2);
+  ctx.fillStyle = 'rgba(250, 204, 21, 0.25)';
+  ctx.fill();
+
+  // Pac-Man Body
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.arc(0, 0, radius, startAngle, endAngle);
+  ctx.closePath();
+  ctx.fillStyle = '#facc15'; // Pac-Man Yellow
+  ctx.fill();
+  ctx.strokeStyle = '#fef08a';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Pac-Man Eye
+  const eyeAngle = baseAngle - Math.PI / 4;
+  const eyeDist = radius * 0.55;
+  const eyeX = Math.cos(eyeAngle) * eyeDist;
+  const eyeY = Math.sin(eyeAngle) * eyeDist;
+
+  ctx.beginPath();
+  ctx.arc(eyeX, eyeY, radius * 0.15, 0, Math.PI * 2);
+  ctx.fillStyle = '#0f172a';
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// Canvas Painting Logic (Pac-Man Arcade Style)
 function renderMazeCanvas(ctx, canvas) {
   const cellW = canvas.width / 13;
   const cellH = canvas.height / 11;
   const now = Date.now();
 
-  // Clear background
-  ctx.fillStyle = '#020617';
+  // Clear background with Arcade Deep Black/Blue
+  ctx.fillStyle = '#030712';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // 1. Draw Maze Walls & Paths
+  // 1. Draw Arcade Neon Walls & Pac-Dots
   for (let r = 0; r < 11; r++) {
     for (let c = 0; c < 13; c++) {
       const val = MAZE_GRID[r][c];
@@ -511,23 +614,48 @@ function renderMazeCanvas(ctx, canvas) {
       const y = r * cellH;
 
       if (val === 1) {
-        // Wall Tile
-        ctx.fillStyle = '#1e1b4b';
+        // Classic Neon Blue Wall Tile
+        ctx.fillStyle = '#090d16';
         ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
-        ctx.strokeStyle = '#4c1d95';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x + 2, y + 2, cellW - 4, cellH - 4);
-      } else {
-        // Path Grid Dot
-        ctx.fillStyle = '#0f172a';
+
+        ctx.strokeStyle = '#2563eb';
+        ctx.lineWidth = 2.5;
+        ctx.strokeRect(x + 3, y + 3, cellW - 6, cellH - 6);
+
+        ctx.strokeStyle = '#3b82f6';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + 1, y + 1, cellW - 2, cellH - 2);
+      } else if (val === 0) {
+        // Path Cell with Pac-Dots / Power Pellets
+        ctx.fillStyle = '#030712';
         ctx.fillRect(x, y, cellW, cellH);
-        ctx.fillStyle = '#334155';
-        ctx.fillRect(x + cellW / 2 - 1, y + cellH / 2 - 1, 2, 2);
+
+        const isPowerPellet = (r === 1 && (c === 2 || c === 10)) || (r === 9 && (c === 2 || c === 10));
+        const cx = x + cellW / 2;
+        const cy = y + cellH / 2;
+
+        if (isPowerPellet) {
+          // Pulsing Power Pellet
+          const pPulse = Math.sin(now / 150) * 2;
+          ctx.beginPath();
+          ctx.arc(cx, cy, 6.5 + pPulse, 0, Math.PI * 2);
+          ctx.fillStyle = '#fef08a';
+          ctx.fill();
+          ctx.strokeStyle = '#f59e0b';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        } else {
+          // Pac-Dot
+          ctx.beginPath();
+          ctx.arc(cx, cy, 3.5, 0, Math.PI * 2);
+          ctx.fillStyle = '#fef08a';
+          ctx.fill();
+        }
       }
     }
   }
 
-  // 2. Draw Answer Orbs / Gates (A, B, C, D)
+  // 2. Draw Answer Gates / Target Orbs (A, B, C, D)
   for (let r = 0; r < 11; r++) {
     for (let c = 0; c < 13; c++) {
       const val = MAZE_GRID[r][c];
@@ -537,11 +665,11 @@ function renderMazeCanvas(ctx, canvas) {
         const cy = r * cellH + cellH / 2;
         const radius = Math.min(cellW, cellH) * 0.38;
 
-        // Pulsating glowing aura
+        // Arcade Neon Aura Pulse
         const pulse = Math.sin(now / 200) * 3;
         ctx.beginPath();
         ctx.arc(cx, cy, radius + 4 + pulse, 0, Math.PI * 2);
-        ctx.fillStyle = `${gate.color}33`;
+        ctx.fillStyle = `${gate.color}44`;
         ctx.fill();
 
         ctx.beginPath();
@@ -549,12 +677,12 @@ function renderMazeCanvas(ctx, canvas) {
         ctx.fillStyle = gate.color;
         ctx.fill();
         ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.5;
         ctx.stroke();
 
         // Draw Badge Symbol inside Orb
         ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 14px Cairo, sans-serif';
+        ctx.font = 'bold 15px Cairo, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(gate.badge, cx, cy);
@@ -562,36 +690,18 @@ function renderMazeCanvas(ctx, canvas) {
     }
   }
 
-  // 3. Draw Enemies "ظلال التشويش"
+  // 3. Draw Pac-Man Ghosts
   mazeState.enemies.forEach(enemy => {
     const ex = enemy.x * cellW + cellW / 2;
     const ey = enemy.y * cellH + cellH / 2;
-    const radius = Math.min(cellW, cellH) * 0.32;
-
-    // Dark aura pulse
-    ctx.beginPath();
-    ctx.arc(ex, ey, radius + 3, 0, Math.PI * 2);
-    ctx.fillStyle = '#88133755';
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(ex, ey, radius, 0, Math.PI * 2);
-    ctx.fillStyle = '#4c0519';
-    ctx.fill();
-    ctx.strokeStyle = '#f43f5e';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-
-    // Eyes
-    ctx.fillStyle = '#fda4af';
-    ctx.fillRect(ex - 5, ey - 3, 3, 4);
-    ctx.fillRect(ex + 2, ey - 3, 3, 4);
+    const radius = Math.min(cellW, cellH) * 0.34;
+    drawPacmanGhost(ctx, ex, ey, radius, enemy.color || '#ef4444', enemy.dirCol, enemy.dirRow);
   });
 
-  // 4. Draw Hero "حارس النور"
+  // 4. Draw Pac-Man Hero
   const hx = mazeState.hero.x * cellW + cellW / 2;
   const hy = mazeState.hero.y * cellH + cellH / 2;
-  const heroRadius = Math.min(cellW, cellH) * 0.36;
+  const heroRadius = Math.min(cellW, cellH) * 0.38;
 
   const isInvulnerable = now < mazeState.invulnerableUntil;
   if (isInvulnerable && Math.floor(now / 100) % 2 === 0) {
@@ -599,27 +709,7 @@ function renderMazeCanvas(ctx, canvas) {
     return;
   }
 
-  // Hero Golden Aura
-  const heroPulse = Math.sin(now / 150) * 4;
-  ctx.beginPath();
-  ctx.arc(hx, hy, heroRadius + 5 + heroPulse, 0, Math.PI * 2);
-  ctx.fillStyle = '#f59e0b44';
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.arc(hx, hy, heroRadius, 0, Math.PI * 2);
-  ctx.fillStyle = '#d97706';
-  ctx.fill();
-  ctx.strokeStyle = '#fef08a';
-  ctx.lineWidth = 2.5;
-  ctx.stroke();
-
-  // Hero Star Symbol
-  ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 15px Cairo, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('✨', hx, hy);
+  drawPacmanHero(ctx, hx, hy, heroRadius, mazeState.hero.dir || 'right', now);
 }
 
 // Modal Layer Renderers

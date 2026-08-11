@@ -1,12 +1,54 @@
 import { state } from '../state/gameState.js';
 import { playSound, stopSpeech } from '../services/audioService.js';
 import { getMemory } from '../services/memoryService.js';
+import { renderMissionPath } from './missionPath.js';
+import { renderMemoryConstellation } from './missionReport.js';
+
+const SCREEN_STAGE_MAP = {
+  'screen-setup': 'setup',
+  'screen-loading': 'loading',
+  'screen-briefing': 'briefing',
+  'screen-story-intro': 'story',
+  'screen-game': 'game',
+  'screen-realms-worlds': 'realms',
+  'screen-realms-game': 'realms',
+  'screen-ending': 'report',
+  'screen-report': 'report'
+};
+
+export function applyThemeSkin(themeName) {
+  document.body.classList.remove('theme-future', 'theme-fantasy', 'theme-space', 'theme-detective', 'theme-realms');
+  
+  if (themeName === 'مدينة مستقبلية') {
+    document.body.classList.add('theme-future');
+  } else if (themeName === 'عالم خيالي') {
+    document.body.classList.add('theme-fantasy');
+  } else if (themeName === 'رحلة فضائية') {
+    document.body.classList.add('theme-space');
+  } else if (themeName === 'لغز بوليسي') {
+    document.body.classList.add('theme-detective');
+  } else if (themeName === 'بوابة الأكوان' || themeName === 'عالم الألعاب') {
+    document.body.classList.add('theme-realms');
+  } else {
+    document.body.classList.add('theme-future');
+  }
+}
 
 export function switchScreen(screenId) {
   stopSpeech();
   document.querySelectorAll('.screen-view').forEach(el => el.classList.add('hidden'));
   const target = document.getElementById(screenId);
   if (target) target.classList.remove('hidden');
+
+  const stageId = SCREEN_STAGE_MAP[screenId] || 'setup';
+  renderMissionPath(stageId);
+
+  if (screenId === 'screen-ending') {
+    const mem = getMemory();
+    const mastered = mem.recentConcepts || [];
+    const review = mem.struggleAreas || [];
+    renderMemoryConstellation(mastered, review);
+  }
 
   const statusBadge = document.getElementById('header-status');
   if (statusBadge) {

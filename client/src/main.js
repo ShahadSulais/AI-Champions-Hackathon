@@ -4,7 +4,8 @@ import { playSound, speakText, stopSpeech } from '../services/audioService.js';
 import { fetchGenerateGame, fetchExtractTextFromImage, fetchGenerateRealmsGame } from '../api/gameApi.js';
 import { state } from '../state/gameState.js';
 import { openSettingsModal, closeSettingsModal, handleClearMemory, handleSaveSettings, handleClearSettings, toggleKeyVisibility } from '../ui/modal.js';
-import { switchScreen, initIntroScreen, showTeacherReport, returnToEnding, resetGameSession, initBriefingScreen, initStoryIntroScreen, advanceStoryScene, previousStoryScene, getActiveStoryScene } from '../ui/screens.js';
+import { switchScreen, initIntroScreen, showTeacherReport, returnToEnding, resetGameSession, initBriefingScreen, initStoryIntroScreen, advanceStoryScene, previousStoryScene, getActiveStoryScene, applyThemeSkin } from '../ui/screens.js';
+import { initKnowledgeScanner, stopKnowledgeScanner } from '../ui/knowledgeScanner.js';
 
 import { startGameplay, toggleHint } from '../game/gameSession.js';
 import { REALMS_FALLBACK_DATA } from '../data/realmsFallback.js';
@@ -288,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const studentLevel = document.getElementById('student-age')?.value.trim() || '';
     const lessonText = lessonTextEl?.value.trim() || '';
     const storyTheme = document.querySelector('input[name="story-theme"]:checked')?.value || 'مدينة مستقبلية';
-    const experienceMode = document.querySelector('input[name="experience-mode"]:checked')?.value || 'classic';
+    applyThemeSkin(storyTheme);
 
     activeLessonTitle = lessonTitle;
 
@@ -328,21 +329,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (generateBtnIcon) generateBtnIcon.classList.add('hidden');
 
     switchScreen('screen-loading');
-
-    // Stage updates without fake progress bars
-    const stages = [
-      "🔍 جارِ تحليل المفاهيم الأساسية للدرس في الـ PDF...",
-      "📝 إعداد ملخص الدرس والمفاهيم الجوهرية والمصطلحات...",
-      "⚔️ صياغة المشاهد التفاعلية وقصة حراس المعرفة..."
-    ];
-    let currentStage = 0;
-    const statusTextEl = document.getElementById('loading-status-text');
-    if (statusTextEl) statusTextEl.textContent = stages[0];
-
-    let stageInterval = setInterval(() => {
-      currentStage = (currentStage + 1) % stages.length;
-      if (statusTextEl) statusTextEl.textContent = stages[currentStage];
-    }, 2500);
+    initKnowledgeScanner();
 
     try {
       const memory = getMemory();
@@ -374,14 +361,14 @@ document.addEventListener('DOMContentLoaded', () => {
       cachedLessonTitleKey = lessonTitle;
       cachedLessonTextKey = lessonText;
 
-      clearInterval(stageInterval);
+      stopKnowledgeScanner();
 
       // Show Lesson Briefing screen
       initBriefingScreen(cachedLessonBriefing);
       switchScreen('screen-briefing');
 
     } catch (err) {
-      clearInterval(stageInterval);
+      stopKnowledgeScanner();
       console.error('Generation Failed:', err);
 
       if (errorMessageText) {
@@ -393,7 +380,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       switchScreen('screen-setup');
     } finally {
-      clearInterval(stageInterval);
+      stopKnowledgeScanner();
       if (generateBtn) generateBtn.disabled = false;
       if (generateSpinner) generateSpinner.classList.add('hidden');
       if (generateBtnText) generateBtnText.textContent = 'توليد المغامرة التكيفية والموجز';

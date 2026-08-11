@@ -62,9 +62,19 @@ export function renderSettingsFields() {
   const providerSelect = document.getElementById('provider-select');
   const keyInput = document.getElementById('api-key-input');
   const statusBadge = document.getElementById('api-status-badge');
+  const expSelect = document.getElementById('experience-mode-select');
+  const motionCheck = document.getElementById('reduced-motion-checkbox');
 
   if (providerSelect) providerSelect.value = current.provider || 'auto';
   if (keyInput) keyInput.value = current.apiKey || '';
+  if (expSelect) expSelect.value = current.experienceMode || 'adventure';
+  if (motionCheck) motionCheck.checked = Boolean(current.reducedMotion);
+
+  if (current.reducedMotion) {
+    document.documentElement.classList.add('reduce-motion');
+  } else {
+    document.documentElement.classList.remove('reduce-motion');
+  }
 
   if (statusBadge) {
     if (current.apiKey) {
@@ -80,11 +90,15 @@ export function renderSettingsFields() {
 export function handleSaveSettings() {
   const providerSelect = document.getElementById('provider-select');
   const keyInput = document.getElementById('api-key-input');
-  
+  const expSelect = document.getElementById('experience-mode-select');
+  const motionCheck = document.getElementById('reduced-motion-checkbox');
+
   const provider = providerSelect?.value || 'auto';
   const apiKey = keyInput?.value.trim() || '';
+  const experienceMode = expSelect?.value || 'adventure';
+  const reducedMotion = motionCheck ? motionCheck.checked : false;
 
-  saveSettings({ provider, apiKey });
+  saveSettings({ provider, apiKey, experienceMode, reducedMotion });
   renderSettingsFields();
 
   const saveBtn = document.getElementById('save-settings-btn');
