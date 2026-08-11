@@ -5,6 +5,7 @@ import { playSound } from '../services/audioService.js';
 import { updateMemory } from '../services/memoryService.js';
 import { switchScreen } from '../ui/screens.js';
 import { triggerConfetti, triggerXpPopup } from '../services/effectsService.js';
+import { DEMO_GAME } from '../data/demoLesson.js';
 
 export function updateGamificationHud() {
   const xpEl = document.getElementById('xp-counter');
@@ -53,8 +54,11 @@ export function startGameplay(lessonTitle) {
 }
 
 export function loadScene(index) {
+  if (!state.gameState || !Array.isArray(state.gameState.scenes) || state.gameState.scenes.length === 0) {
+    state.gameState = DEMO_GAME;
+  }
   state.currentSceneIndex = index;
-  state.currentSceneData = state.gameState.scenes[index];
+  state.currentSceneData = state.gameState.scenes[index] || state.gameState.scenes[0];
 
   const totalScenes = state.gameState.scenes.length || 3;
   const progressPercent = Math.round(((index + 1) / totalScenes) * 100);

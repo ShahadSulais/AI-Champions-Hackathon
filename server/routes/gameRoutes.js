@@ -105,15 +105,36 @@ router.post('/extract-text', async (req, res, next) => {
   }
 });
 
+function sanitizeTextForTTS(text) {
+  if (!text || typeof text !== 'string') return '';
+  return text
+    .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F700}-\u{1F77F}\u{1F780}-\u{1F7FF}\u{1F800}-\u{1F8FF}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{2300}-\u{23FF}]/gu, '')
+    .replace(/[^\p{L}\p{N}\s.,?!،؟-]/gu, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// OPTIONS /api/tts CORS preflight
+router.options('/tts', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.sendStatus(204);
+});
+
 // GET /api/tts - High Quality Arabic Text-To-Speech audio stream
 router.get('/tts', async (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   try {
-    const text = req.query.text;
-    if (!text || typeof text !== 'string') {
-      return res.status(400).send('Text parameter is required.');
+    const rawText = req.query.text;
+    const cleanText = sanitizeTextForTTS(rawText);
+    if (!cleanText) {
+      return res.status(400).send('Valid text parameter is required.');
     }
 
-    const truncated = text.trim().slice(0, 250);
+    const truncated = cleanText.slice(0, 200);
     const base64Audio = await getAudioBase64(truncated, {
       lang: 'ar',
       slow: false,

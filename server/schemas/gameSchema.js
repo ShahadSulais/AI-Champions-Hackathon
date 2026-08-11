@@ -67,6 +67,40 @@ export const sceneSchema = z.object({
   supportNarration: z.string().default('حاول مرة أخرى.')
 });
 
+export const lessonTermSchema = z.object({
+  term: z.string(),
+  definition: z.string()
+});
+
+export const lessonFormulaSchema = z.object({
+  formula: z.string(),
+  explanation: z.string()
+});
+
+export const lessonBriefingSchema = z.object({
+  title: z.string().default('عنوان الدرس'),
+  subject: z.string().default('المادة الدراسية'),
+  summary: z.string().default('ملخص الدرس العلمي.'),
+  keyPoints: z.array(z.string()).default([]),
+  terms: z.array(lessonTermSchema).default([]),
+  formulas: z.array(lessonFormulaSchema).default([]),
+  estimatedReadingMinutes: z.number().default(2)
+});
+
+export const storySceneSchema = z.object({
+  id: z.string().default('scene_1'),
+  narration: z.string(),
+  dialogue: z.string().optional().default(''),
+  backgroundDescription: z.string().optional().default(''),
+  soundDescription: z.string().optional().default('')
+});
+
+export const storyIntroSchema = z.object({
+  title: z.string().default('مهمة حُرّاس المعرفة'),
+  missionObjective: z.string().default('استعادة مفاهيم الدرس وإعادة التوازن المعرفي.'),
+  scenes: z.array(storySceneSchema).min(1)
+});
+
 export const gameOutputSchema = z.object({
   gameTitle: z.string(),
   introduction: z.string(),
@@ -87,7 +121,10 @@ export const gameOutputSchema = z.object({
   teacherKey: z.array(z.object({
     concept: z.string(),
     evaluationCriteria: z.string()
-  })).optional().default([])
+  })).optional().default([]),
+  lesson: lessonBriefingSchema.optional(),
+  story: storyIntroSchema.optional(),
+  questions: z.array(z.any()).optional().default([])
 }).transform((data) => {
   // Ensure concepts have IDs c1, c2, c3
   data.concepts.forEach((c, idx) => {
@@ -138,6 +175,9 @@ export const realmQuestionSchema = z.object({
 export const realmOutputSchema = z.object({
   title: z.string().default('مهمة حُرّاس الأكوان'),
   intro: z.string().default('انطلق في رحلة الأكوان التفاعلية واجتاز التحديات!'),
-  questions: z.array(realmQuestionSchema).min(1)
+  questions: z.array(realmQuestionSchema).min(1),
+  lesson: lessonBriefingSchema.optional(),
+  story: storyIntroSchema.optional()
 });
+
 

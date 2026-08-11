@@ -1,5 +1,5 @@
 import { realmsState, getCurrentQuestion, submitRealmsAnswer, nextRealmsQuestion, pauseRealmsSession, resumeRealmsSession, retryRealmsSession } from './realmsSession.js';
-import { playSound } from '../services/audioService.js';
+import { playSound, speakText, stopSpeech } from '../services/audioService.js';
 import { triggerConfetti, triggerXpPopup } from '../services/effectsService.js';
 import { REALM_WORLDS } from '../../shared/gameTypes.js';
 
@@ -7,6 +7,7 @@ let keyboardListener = null;
 
 export function renderRealmsOverlay(containerEl, onWorldComplete, onReturnToWorlds) {
   if (!containerEl) return;
+  stopSpeech();
   containerEl.replaceChildren();
 
   const currentWorldObj = REALM_WORLDS.find(w => w.id === realmsState.selectedWorld) || REALM_WORLDS[0];
@@ -171,18 +172,34 @@ function renderPlayingState(container, world, onWorldComplete, onReturnToWorlds)
   qCard.className = 'bg-slate-950 border border-slate-800 p-4 md:p-6 rounded-2xl space-y-4';
 
   const qHeader = document.createElement('div');
-  qHeader.className = 'flex justify-between items-center';
+  qHeader.className = 'flex justify-between items-center flex-wrap gap-2';
 
   const qTag = document.createElement('span');
   qTag.className = 'text-[11px] font-bold text-purple-300 bg-purple-950 px-2.5 py-0.5 rounded border border-purple-800';
   qTag.textContent = `🎯 التحدي المعرفي #${realmsState.currentQuestionIndex + 1}`;
 
+  const rightGroup = document.createElement('div');
+  rightGroup.className = 'flex items-center gap-2.5';
+
+  const qSpeakBtn = document.createElement('button');
+  qSpeakBtn.type = 'button';
+  qSpeakBtn.id = 'realms-q-speak-btn';
+  qSpeakBtn.className = 'text-xs bg-slate-800 hover:bg-slate-700 text-purple-300 border border-slate-700 px-2.5 py-1 rounded-lg transition flex items-center gap-1 font-semibold outline-none focus:ring-2 focus:ring-purple-400';
+  qSpeakBtn.innerHTML = '<span>🔊</span> <span>اقرأ السؤال</span>';
+  qSpeakBtn.addEventListener('click', () => {
+    const choicesStr = (currentQ.choices || []).map((c, i) => `الخيار ${i+1}: ${c.text}`).join('. ');
+    speakText(`${currentQ.question}. ${choicesStr}`);
+  });
+
   const keyboardHint = document.createElement('span');
   keyboardHint.className = 'text-[10px] text-slate-400 hidden sm:inline-block';
-  keyboardHint.textContent = '💡 استخدم الأرقام (1-4) أو مفاتيح (A-D) للتحكم الأسرع';
+  keyboardHint.textContent = '💡 استخدم الأرقام (1-4) أو (A-D)';
+
+  rightGroup.appendChild(qSpeakBtn);
+  rightGroup.appendChild(keyboardHint);
 
   qHeader.appendChild(qTag);
-  qHeader.appendChild(keyboardHint);
+  qHeader.appendChild(rightGroup);
 
   const qText = document.createElement('h4');
   qText.className = 'text-base md:text-lg font-bold text-slate-100 leading-relaxed';

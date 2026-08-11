@@ -242,6 +242,65 @@ function normalizeRawGameObject(raw) {
     ? raw.teacherKey.map(k => ({ concept: String(k.concept || ''), evaluationCriteria: String(k.evaluationCriteria || '') }))
     : [{ concept: concepts[0].name, evaluationCriteria: 'استيعاب مفاهيم الدرس' }];
 
+  const lesson = {
+    title: raw.lesson?.title || gameTitle || 'عنوان الدرس',
+    subject: raw.lesson?.subject || 'العلوم المعرفية',
+    summary: raw.lesson?.summary || introduction || 'ملخص شاملاً لمفاهيم الدرس الأساسية وقواعده الجوهرية.',
+    keyPoints: Array.isArray(raw.lesson?.keyPoints) && raw.lesson.keyPoints.length > 0
+      ? raw.lesson.keyPoints.map(String)
+      : concepts.map(c => `${c.name}: ${c.explanation}`),
+    terms: Array.isArray(raw.lesson?.terms)
+      ? raw.lesson.terms.map(t => ({ term: String(t.term || ''), definition: String(t.definition || '') }))
+      : concepts.map(c => ({ term: c.name, definition: c.explanation })),
+    formulas: Array.isArray(raw.lesson?.formulas)
+      ? raw.lesson.formulas.map(f => ({ formula: String(f.formula || ''), explanation: String(f.explanation || '') }))
+      : [],
+    estimatedReadingMinutes: typeof raw.lesson?.estimatedReadingMinutes === 'number' ? raw.lesson.estimatedReadingMinutes : 2
+  };
+
+  const story = {
+    title: raw.story?.title || gameTitle || 'مهمة حُرّاس المعرفة',
+    missionObjective: raw.story?.missionObjective || mission || 'استعادة مفاهيم الدرس وإلغاء تأثير ظلال النسيان',
+    scenes: Array.isArray(raw.story?.scenes) && raw.story.scenes.length >= 3
+      ? raw.story.scenes.map((s, i) => ({
+          id: String(s.id || `scene_${i + 1}`),
+          narration: String(s.narration || ''),
+          dialogue: String(s.dialogue || ''),
+          backgroundDescription: String(s.backgroundDescription || ''),
+          soundDescription: String(s.soundDescription || '')
+        }))
+      : [
+          {
+            id: 'scene_1',
+            narration: `رصد أرشيف المعرفة اختفاء رموز ومفاهيم درس (${lesson.title}) وتراجع التوازن.`,
+            dialogue: `${character.name}: حارس المعرفة، تم رصد خلل في الأرشيف ونحتاج لتدخلك السريع!`,
+            backgroundDescription: 'قاعة الأرشيف المعرفي ذات الكريستالات المضيئة',
+            soundDescription: 'صوت إنذار أثيري ورنين كريستالي'
+          },
+          {
+            id: 'scene_2',
+            narration: 'تسببت ظلال النسيان في تشتيت مفاهيم الدرس عبر ثغرات العالم التفاعلي.',
+            dialogue: `${character.name}: تناثرت الشظايا المعرفية، واستعادتها تتطلب دقة وتحليلاً.`,
+            backgroundDescription: 'أطياف داكنة تحوم حول بوابات المعرفة',
+            soundDescription: 'صوت رياح أثيرية وهمس خافت'
+          },
+          {
+            id: 'scene_3',
+            narration: 'تتجهز كمحارب في حراس المعرفة، وتتلقى درع الطاقة لبدء التحدي.',
+            dialogue: `${character.name}: ثق بمعلوماتك وقدرتك التحليلية، المعرفة هي سلاحك الحقيقي!`,
+            backgroundDescription: 'تألق درع حارس المعرفة بشعاع ضوئي',
+            soundDescription: 'موسيقى حماسية تصاعدية'
+          },
+          {
+            id: 'scene_4',
+            narration: 'تنفتح البوابة التفاعلية تمهيداً لبدء تحديات المغامرة.',
+            dialogue: `${character.name}: انطلق الآن عبر البوابة وحقق النصر المعرفي!`,
+            backgroundDescription: 'بوابة ضوئية مشرقة تتلألأ بالألوان',
+            soundDescription: 'دوي طاقة متصاعدة وتألق البوابة'
+          }
+        ]
+  };
+
   return {
     gameTitle,
     introduction,
@@ -251,9 +310,13 @@ function normalizeRawGameObject(raw) {
     scenes,
     misconception,
     ending: String(raw.ending || 'أحسنت! أتممت المغامرة بنجاح.'),
-    teacherKey
+    teacherKey,
+    lesson,
+    story,
+    questions: scenes.map(s => s.challenge)
   };
 }
+
 
 // Robust JSON Extraction and Sanitizer Helper
 function extractAndParseJSON(rawText) {
@@ -636,17 +699,118 @@ function normalizeRealmsObject(raw, lessonTitle) {
     };
   });
 
+  const lesson = {
+    title: raw.lesson?.title || lessonTitle || 'درس المعرفة الأركيدية',
+    subject: raw.lesson?.subject || 'العلوم والمعرفة',
+    summary: raw.lesson?.summary || intro || 'ملخص شاملاً لمفاهيم الدرس الأساسية وقواعده الجوهرية قبل دخول بوابة الأكوان.',
+    keyPoints: Array.isArray(raw.lesson?.keyPoints) && raw.lesson.keyPoints.length > 0
+      ? raw.lesson.keyPoints.map(String)
+      : questions.map(q => q.question),
+    terms: Array.isArray(raw.lesson?.terms)
+      ? raw.lesson.terms.map(t => ({ term: String(t.term || ''), definition: String(t.definition || '') }))
+      : [{ term: 'بوابة الأكوان', definition: 'التحديات التفاعلية الأربعة لحراس المعرفة' }],
+    formulas: Array.isArray(raw.lesson?.formulas)
+      ? raw.lesson.formulas.map(f => ({ formula: String(f.formula || ''), explanation: String(f.explanation || '') }))
+      : [],
+    estimatedReadingMinutes: typeof raw.lesson?.estimatedReadingMinutes === 'number' ? raw.lesson.estimatedReadingMinutes : 2
+  };
+
+  const story = {
+    title: raw.story?.title || title || 'مهمة حُرّاس الأكوان',
+    missionObjective: raw.story?.missionObjective || intro || 'استعادة شظايا المفاهيم وإلغاء تأثير ظلال النسيان عبر عوالم الأكوان الأربعة',
+    scenes: Array.isArray(raw.story?.scenes) && raw.story.scenes.length >= 2
+      ? raw.story.scenes.map((s, i) => ({
+          id: String(s.id || `scene_${i + 1}`),
+          narration: String(s.narration || ''),
+          dialogue: String(s.dialogue || ''),
+          backgroundDescription: String(s.backgroundDescription || ''),
+          soundDescription: String(s.soundDescription || '')
+        }))
+      : [
+          {
+            id: 'scene_1',
+            narration: `رصدت بوابة الأكوان اختفاء مفاهيم درس (${lesson.title}) وتناثر رموز المعرفة.`,
+            dialogue: 'المرشد الأركيدي: حارس المعرفة! اختلت الطاقة في عوالم الأكوان ونحتاج لتدخلك.',
+            backgroundDescription: 'بوابة ضوئية مشرقة تتلألأ بالألوان والمجرات',
+            soundDescription: 'صوت إنذار أثيري ورنين كريستالي'
+          },
+          {
+            id: 'scene_2',
+            narration: 'تسببت ظلال النسيان في تشتيت المعرفة بين متاهة المعرفة وجزر السماء وسباق المجرات ونينجا المعرفة.',
+            dialogue: 'المرشد الأركيدي: اجتز الأكوان الأربعة بالترتيب واسترد الشظايا المفقودة.',
+            backgroundDescription: 'أطياف داكنة تتشتت عبر المسارات النجمية',
+            soundDescription: 'صوت رياح أثيرية وهمس أركيدي'
+          },
+          {
+            id: 'scene_3',
+            narration: 'يتجهز حارس المعرفة ويشحن سلاحه المعرفي لبدء التحديات الأركيدية.',
+            dialogue: 'المرشد الأركيدي: أنت مستعد الآن لفتح الأكوان، انطلق!',
+            backgroundDescription: 'توهج المحارب بضوء النيون الأركيدي',
+            soundDescription: 'موسيقى أركيدية حماسية'
+          }
+        ]
+  };
+
   return {
     title,
     intro,
-    questions
+    questions,
+    lesson,
+    story
   };
 }
 
 function getDemoRealmsFallback(lessonTitle) {
+  const title = `مهمة ${lessonTitle || 'الدرس'} في بوابة الأكوان (تجريبي)`;
+  const intro = "استكشف المفاهيم العلمية للدرس واجتاز التحديات الأركيدية في النمط التجريبي للعبة.";
   return {
-    title: `مهمة ${lessonTitle || 'الدرس'} في بوابة الأكوان (تجريبي)`,
-    intro: "استكشف المفاهيم العلمية للدرس واجتاز التحديات الأركيدية في النمط التجريبي للعبة.",
+    title,
+    intro,
+    lesson: {
+      title: lessonTitle || "عملية البناء الضوئي في النباتات",
+      subject: "العلوم العامة",
+      summary: "تتيح بوابة الأكوان دراسة مفاهيم الدرس من خلال موجز سري والتحديات الأركيدية الأربعة (متاهة المعرفة، جزر السماء، سباق المجرات، نينجا المعرفة) لتعزيز الفهم المفاهيمي.",
+      keyPoints: [
+        "البناء الضوئي عملية حيوية تحول ضوء الشمس والماء وثاني أكسيد الكربون إلى طاقة وأكسجين.",
+        "تحدث التفاعلات داخل البلاستيدات الخضراء في الورقة بفضل صبغة الكلوروفيل.",
+        "ينتج عن التفاعل سكر الجلوكوز لنمو النبات ويطلق الأكسجين في الغلاف الجوي."
+      ],
+      terms: [
+        { term: "الكلوروفيل", definition: "الصبغة الخضراء المسؤولة عن امتصاص ضوء الشمس." },
+        { term: "بوابة الأكوان", definition: "المنصة الأركيدية لخوض التحديات المعرفية المتتالية." }
+      ],
+      formulas: [
+        { formula: "ماء + ثاني أكسيد الكربون + ضوء الشمس ➔ جلوكوز + أكسجين", explanation: "معادلة إنتاج الطاقة الحيوية النباتية." }
+      ],
+      estimatedReadingMinutes: 2
+    },
+    story: {
+      title: `مهمة حُرّاس الأكوان - ${lessonTitle || 'الدرس'}`,
+      missionObjective: "اجتياز الأكوان التفاعلية الأربعة وإعادة توازن الطاقة المعرفية",
+      scenes: [
+        {
+          id: "scene_1",
+          narration: `رصدت بوابة الأكوان اختفاء شظايا المعرفة الخاصة بدرس (${lessonTitle || 'الدرس'}).`,
+          dialogue: "المرشد: تلاشت رموز الدرس! نحتاج إلى حارس المعرفة فوراً.",
+          backgroundDescription: "بوابة ضوئية مشرقة تتلألأ بالألوان والمجرات.",
+          soundDescription: "صوت إنذار أثيري ورنين كريستالي"
+        },
+        {
+          id: "scene_2",
+          narration: "تسببت ظلال النسيان في تبعثر مفاهيم الدرس بين متاهة المعرفة وجزر السماء وسباق المجرات.",
+          dialogue: "المرشد: يجب عليك اجتياز التحديات الأربعة واستعادة الشظايا خطوة بخطوة.",
+          backgroundDescription: "سحب أثيرية داكنة تحيط بالجزر العائمة والمسارات النجمية.",
+          soundDescription: "صوت رياح أثيرية وهمس أركيدي"
+        },
+        {
+          id: "scene_3",
+          narration: "يتجهز حارس المعرفة ويرتدي درع الطاقة المعرفية لبدء التحدي الأركيدي.",
+          dialogue: "المرشد: البوابة تتأهب للفتح الآن، انطلق وحقق الانتصار المعرفي!",
+          backgroundDescription: "استعداد حارس المعرفة وتألق درع النيون.",
+          soundDescription: "موسيقى أركيدية حماسية"
+        }
+      ]
+    },
     questions: [
       {
         id: "q1",
@@ -693,5 +857,6 @@ function getDemoRealmsFallback(lessonTitle) {
     ]
   };
 }
+
 
 

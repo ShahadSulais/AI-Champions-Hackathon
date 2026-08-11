@@ -1,10 +1,11 @@
 import { DEMO_LESSON } from '../data/demoLesson.js';
 import { getMemory } from '../services/memoryService.js';
-import { playSound, speakText } from '../services/audioService.js';
+import { playSound, speakText, stopSpeech } from '../services/audioService.js';
 import { fetchGenerateGame, fetchExtractTextFromImage, fetchGenerateRealmsGame } from '../api/gameApi.js';
 import { state } from '../state/gameState.js';
 import { openSettingsModal, closeSettingsModal, handleClearMemory, handleSaveSettings, handleClearSettings, toggleKeyVisibility } from '../ui/modal.js';
-import { switchScreen, initIntroScreen, showTeacherReport, returnToEnding, resetGameSession } from '../ui/screens.js';
+import { switchScreen, initIntroScreen, showTeacherReport, returnToEnding, resetGameSession, initBriefingScreen, initStoryIntroScreen, advanceStoryScene, previousStoryScene, getActiveStoryScene } from '../ui/screens.js';
+
 import { startGameplay, toggleHint } from '../game/gameSession.js';
 import { REALMS_FALLBACK_DATA } from '../data/realmsFallback.js';
 import { initRealmsSession } from '../game/realmsSession.js';
@@ -168,6 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
         updateCharacterCount();
         if (validationMsg) validationMsg.classList.add('hidden');
         playSound('select');
+
+        // Check for multiple lessons inside uploaded text
+        checkAndHandleMultiLessons(extractedText);
       }
 
       if (fileUploadStatusText) fileUploadStatusText.textContent = `تم استخراج النص من (${file.name}) بنجاح ✓`;
@@ -182,6 +186,77 @@ document.addEventListener('DOMContentLoaded', () => {
     } finally {
       lessonFileInput.value = '';
     }
+  });
+
+  // Multi-Lesson Detection & Selection Handler
+  let detectedMultiLessons = [];
+  function checkAndHandleMultiLessons(text) {
+    if (!text || text.length < 100) return false;
+
+    const lessonPattern = /(?:الدرس|الفصل|الوحدة|الموضوع|Lesson|Chapter)\s*(?:[1-9]|10|الأول|الثاني|الثالث|الرابع|الخامس|السادس|السابع|الثامن|التاسع|العاشر)[^\n]*/gi;
+    const matches = Array.from(text.matchAll(lessonPattern));
+
+    if (matches.length >= 2) {
+      detectedMultiLessons = matches.map((match, idx) => {
+        const title = match[0].trim();
+        const startPos = match.index;
+        const endPos = (idx < matches.length - 1) ? matches[idx + 1].index : text.length;
+        const content = text.slice(startPos, endPos).trim();
+        return { title, content };
+      });
+
+      openMultiLessonModal();
+      return true;
+    }
+    return false;
+  }
+
+  function openMultiLessonModal() {
+    const modal = document.getElementById('multi-lesson-modal');
+    const listContainer = document.getElementById('multi-lesson-list');
+    if (!modal || !listContainer) return;
+
+    listContainer.replaceChildren();
+    detectedMultiLessons.forEach((item, index) => {
+      const label = document.createElement('label');
+      label.className = 'block bg-slate-950 border border-slate-800 hover:border-purple-600/80 p-3 rounded-xl cursor-pointer transition';
+      label.innerHTML = `
+        <div class="flex items-center gap-2.5">
+          <input type="radio" name="multi-lesson-choice" value="${index}" ${index === 0 ? 'checked' : ''} class="text-purple-600 focus:ring-purple-500">
+          <div>
+            <span class="text-xs font-bold text-purple-300 block">${item.title}</span>
+            <p class="text-[11px] text-slate-400 line-clamp-2 mt-0.5">${item.content.slice(0, 120)}...</p>
+          </div>
+        </div>
+      `;
+      listContainer.appendChild(label);
+    });
+
+    modal.classList.remove('hidden');
+  }
+
+  function closeMultiLessonModal() {
+    const modal = document.getElementById('multi-lesson-modal');
+    if (modal) modal.classList.add('hidden');
+  }
+
+  document.getElementById('multi-lesson-close-btn')?.addEventListener('click', closeMultiLessonModal);
+  document.getElementById('multi-lesson-cancel-btn')?.addEventListener('click', closeMultiLessonModal);
+  document.getElementById('confirm-selected-lesson-btn')?.addEventListener('click', () => {
+    const checked = document.querySelector('input[name="multi-lesson-choice"]:checked');
+    if (checked) {
+      const idx = parseInt(checked.value, 10);
+      const chosen = detectedMultiLessons[idx];
+      if (chosen && lessonTextEl) {
+        lessonTextEl.value = chosen.content;
+        const titleInput = document.getElementById('lesson-title');
+        if (titleInput && (!titleInput.value.trim() || titleInput.value.startsWith('درس'))) {
+          titleInput.value = chosen.title;
+        }
+        updateCharacterCount();
+      }
+    }
+    closeMultiLessonModal();
   });
 
   // Demo lesson loader
@@ -200,6 +275,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let currentRealmsData = null;
   let activeLessonTitle = '';
+  let cachedLessonBriefing = null;
+  let cachedStoryIntro = null;
+  let cachedLessonTitleKey = '';
+  let cachedLessonTextKey = '';
 
   // Form submit handler with validation & stage loading
   async function handleFormSubmit(e) {
@@ -235,78 +314,71 @@ document.addEventListener('DOMContentLoaded', () => {
     if (validationMsg) validationMsg.classList.add('hidden');
     if (errorContainer) errorContainer.classList.add('hidden');
 
+    // Check for cached briefing & story to prevent unnecessary regeneration
+    if (cachedLessonTitleKey === lessonTitle && cachedLessonTextKey === lessonText && cachedLessonBriefing && cachedStoryIntro) {
+      initBriefingScreen(cachedLessonBriefing);
+      switchScreen('screen-briefing');
+      return;
+    }
+
     // Set button loading state & prevent duplicate submission
     if (generateBtn) generateBtn.disabled = true;
     if (generateSpinner) generateSpinner.classList.remove('hidden');
     if (generateBtnText) generateBtnText.textContent = 'جارِ التحليل والتوليد...';
     if (generateBtnIcon) generateBtnIcon.classList.add('hidden');
 
-    if (experienceMode === 'portal_realms') {
-      currentRealmsData = { ...REALMS_FALLBACK_DATA, title: `مهمة ${lessonTitle || 'الدرس'} - بوابة الأكوان` };
-
-      const titleDisp = document.getElementById('realms-lesson-title-display');
-      if (titleDisp) titleDisp.textContent = currentRealmsData.title;
-
-      const introDisp = document.getElementById('realms-mission-intro-display');
-      if (introDisp) introDisp.textContent = currentRealmsData.intro;
-
-      switchScreen('screen-realms-worlds');
-
-      if (generateBtn) generateBtn.disabled = false;
-      if (generateSpinner) generateSpinner.classList.add('hidden');
-      if (generateBtnText) generateBtnText.textContent = 'توليد المغامرة التكيفية';
-
-      // Background AI generation for story & custom questions without blocking gameplay
-      fetchGenerateRealmsGame({
-        lessonTitle,
-        studentLevel,
-        lessonText,
-        storyTheme,
-        memory: getMemory()
-      }).then(aiData => {
-        if (aiData && Array.isArray(aiData.questions) && aiData.questions.length > 0) {
-          currentRealmsData = aiData;
-          if (titleDisp) titleDisp.textContent = aiData.title || `مهمة ${lessonTitle}`;
-          if (introDisp) introDisp.textContent = aiData.intro || 'اختر العوالم الأركيدية للبدء التفاعلي.';
-        }
-      }).catch(err => {
-        console.warn('Realms background AI load used fallback:', err);
-      });
-
-      return;
-    }
-
     switchScreen('screen-loading');
 
     // Stage updates without fake progress bars
     const stages = [
-      "🔍 جارِ تحليل المفاهيم العلمية للدرس...",
-      "🧠 استدعاء ذاكرة الطالب التكيفية والسياق السابق...",
-      "⚔️ صياغة المشاهد التفاعلية وتحديات المغامرة..."
+      "🔍 جارِ تحليل المفاهيم الأساسية للدرس في الـ PDF...",
+      "📝 إعداد ملخص الدرس والمفاهيم الجوهرية والمصطلحات...",
+      "⚔️ صياغة المشاهد التفاعلية وقصة حراس المعرفة..."
     ];
     let currentStage = 0;
     const statusTextEl = document.getElementById('loading-status-text');
     if (statusTextEl) statusTextEl.textContent = stages[0];
 
-    stageInterval = setInterval(() => {
+    let stageInterval = setInterval(() => {
       currentStage = (currentStage + 1) % stages.length;
       if (statusTextEl) statusTextEl.textContent = stages[currentStage];
-    }, 2800);
+    }, 2500);
 
     try {
       const memory = getMemory();
-      state.gameState = await fetchGenerateGame({
-        lessonTitle,
-        studentLevel,
-        lessonText,
-        storyTheme,
-        memory
-      });
+      if (storyTheme === 'بوابة الأكوان' || storyTheme === 'عالم الألعاب') {
+        const realmsAiData = await fetchGenerateRealmsGame({
+          lessonTitle,
+          studentLevel,
+          lessonText,
+          storyTheme,
+          memory
+        });
+
+        currentRealmsData = realmsAiData || { ...REALMS_FALLBACK_DATA, title: `مهمة ${lessonTitle} - عالم الأكوان الأركيدية` };
+        cachedLessonBriefing = currentRealmsData.lesson || DEMO_LESSON.lesson;
+        cachedStoryIntro = currentRealmsData.story || DEMO_LESSON.story;
+      } else {
+        state.gameState = await fetchGenerateGame({
+          lessonTitle,
+          studentLevel,
+          lessonText,
+          storyTheme,
+          memory
+        });
+
+        cachedLessonBriefing = state.gameState.lesson || DEMO_LESSON.lesson;
+        cachedStoryIntro = state.gameState.story || DEMO_LESSON.story;
+      }
+
+      cachedLessonTitleKey = lessonTitle;
+      cachedLessonTextKey = lessonText;
 
       clearInterval(stageInterval);
-      initIntroScreen();
-      switchScreen('screen-intro');
 
+      // Show Lesson Briefing screen
+      initBriefingScreen(cachedLessonBriefing);
+      switchScreen('screen-briefing');
 
     } catch (err) {
       clearInterval(stageInterval);
@@ -324,13 +396,113 @@ document.addEventListener('DOMContentLoaded', () => {
       clearInterval(stageInterval);
       if (generateBtn) generateBtn.disabled = false;
       if (generateSpinner) generateSpinner.classList.add('hidden');
-      if (generateBtnText) generateBtnText.textContent = 'توليد المغامرة التكيفية';
+      if (generateBtnText) generateBtnText.textContent = 'توليد المغامرة التكيفية والموجز';
       if (generateBtnIcon) generateBtnIcon.classList.remove('hidden');
     }
   }
 
+  // Briefing Screen Control Listeners
+  document.getElementById('briefing-read-aloud-btn')?.addEventListener('click', () => {
+    const briefing = cachedLessonBriefing || state.gameState?.lesson || DEMO_LESSON.lesson;
+    if (!briefing) return;
+    const textToRead = `${briefing.title || ''}. ${briefing.summary || ''}. النقاط الأساسية: ${ (briefing.keyPoints || []).join('. ') }`;
+    speakText(textToRead);
+  });
+
+
+  document.getElementById('briefing-simplify-btn')?.addEventListener('click', () => {
+    if (!cachedLessonBriefing) return;
+    playSound('select');
+
+    // Create a simplified reading version
+    const simplifiedData = {
+      ...cachedLessonBriefing,
+      summary: `نسخة مبسطة: ${cachedLessonBriefing.summary.replace(/(والتي|تكون|حيث إن|بالإضافة إلى)/g, '')}`,
+      keyPoints: (cachedLessonBriefing.keyPoints || []).slice(0, 4)
+    };
+
+    initBriefingScreen(simplifiedData);
+  });
+
+  document.getElementById('briefing-back-btn')?.addEventListener('click', () => {
+    playSound('select');
+    switchScreen('screen-setup');
+  });
+
+  document.getElementById('briefing-ready-btn')?.addEventListener('click', () => {
+    playSound('select');
+    if (!cachedStoryIntro) {
+      cachedStoryIntro = state.gameState?.story || DEMO_LESSON.story;
+    }
+
+    initStoryIntroScreen(cachedStoryIntro, () => {
+      launchTargetGame();
+    });
+    switchScreen('screen-story-intro');
+  });
+
+  // Story Screen Controls
+  document.getElementById('story-next-btn')?.addEventListener('click', advanceStoryScene);
+  document.getElementById('story-prev-btn')?.addEventListener('click', previousStoryScene);
+  document.getElementById('story-skip-btn')?.addEventListener('click', () => {
+    playSound('select');
+    launchTargetGame();
+  });
+
+  document.getElementById('story-read-aloud-btn')?.addEventListener('click', () => {
+    const scene = getActiveStoryScene();
+    if (!scene) return;
+    const textToRead = `${scene.narration || ''}. ${scene.dialogue ? 'وحوار الشخصية: ' + scene.dialogue : ''}`;
+    speakText(textToRead);
+  });
+
+  document.getElementById('story-sound-toggle-btn')?.addEventListener('click', () => {
+    state.studentSession.soundMuted = !state.studentSession.soundMuted;
+    const isMuted = state.studentSession.soundMuted;
+
+    if (isMuted) {
+      stopSpeech();
+    } else {
+      playSound('select');
+    }
+
+    const icon = document.getElementById('story-sound-icon');
+    if (icon) icon.textContent = isMuted ? '🔇' : '🔊';
+
+    const gameSoundBtn = document.getElementById('sound-toggle-btn');
+    if (gameSoundBtn) {
+      gameSoundBtn.replaceChildren();
+      const span = document.createElement('span');
+      span.textContent = isMuted ? '🔇' : '🔊';
+      gameSoundBtn.appendChild(span);
+    }
+  });
+
+  let reducedMotionEnabled = false;
+  document.getElementById('story-reduced-motion-btn')?.addEventListener('click', () => {
+    reducedMotionEnabled = !reducedMotionEnabled;
+    if (reducedMotionEnabled) {
+      document.documentElement.classList.add('reduce-motion');
+    } else {
+      document.documentElement.classList.remove('reduce-motion');
+    }
+    playSound('select');
+  });
+
+  function launchTargetGame() {
+    const storyTheme = document.querySelector('input[name="story-theme"]:checked')?.value || 'مدينة مستقبلية';
+    if (storyTheme === 'بوابة الأكوان' || storyTheme === 'عالم الألعاب') {
+      openRealmsWorldScreen();
+    } else {
+      const lessonTitle = document.getElementById('lesson-title')?.value || "درس معرفي";
+      startGameplay(lessonTitle);
+    }
+  }
+
+
   setupForm?.addEventListener('submit', handleFormSubmit);
   retryBtn?.addEventListener('click', () => handleFormSubmit());
+
 
   // Bind Portal of Realms World Selector Buttons
   document.querySelectorAll('.start-realm-world-btn').forEach(btn => {
