@@ -25,7 +25,7 @@ export async function fetchGenerateGame({ lessonTitle, studentLevel, lessonText,
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4000);
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
 
   try {
     const response = await fetch(`${API_BASE}/api/games/generate`, {
@@ -123,7 +123,7 @@ export async function fetchGenerateRealmsGame({ lessonTitle, studentLevel, lesso
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 4000);
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
 
   try {
     const response = await fetch(`${API_BASE}/api/games/generate-realms`, {

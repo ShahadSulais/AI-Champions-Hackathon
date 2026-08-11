@@ -374,7 +374,7 @@ function extractAndParseJSON(rawText) {
 async function callOpenRouterAPI(promptText, modelName, overrideApiKey) {
   const apiKey = overrideApiKey || process.env.OPENROUTER_API_KEY;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
 
   try {
     const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -387,7 +387,7 @@ async function callOpenRouterAPI(promptText, modelName, overrideApiKey) {
       },
       body: JSON.stringify({
         model: modelName,
-        max_tokens: 4000,
+        max_tokens: 8192,
         messages: [
           {
             role: 'system',
@@ -415,7 +415,7 @@ async function callOpenRouterAPI(promptText, modelName, overrideApiKey) {
   } catch (err) {
     clearTimeout(timeoutId);
     if (err.name === 'AbortError') {
-      throw new Error('انتهت مهلة الاتصال بـ OpenRouter API (15 ثانية).');
+      throw new Error('انتهت مهلة الاتصال بـ OpenRouter API (60 ثانية).');
     }
     throw err;
   }
@@ -427,7 +427,7 @@ async function callGeminiAPI(promptText, modelName, overrideApiKey) {
   const ai = new GoogleGenAI({ apiKey });
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), 60000);
 
   try {
     const response = await ai.models.generateContent({
@@ -435,7 +435,7 @@ async function callGeminiAPI(promptText, modelName, overrideApiKey) {
       contents: promptText,
       config: {
         responseMimeType: 'application/json',
-        maxOutputTokens: 4000
+        maxOutputTokens: 8192
       }
     });
 
